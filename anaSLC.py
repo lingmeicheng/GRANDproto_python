@@ -7,8 +7,6 @@ import numpy as np
 import pylab as pl
 
 def loop(filename):
-   pl.ion()
-
    datafile = '../data/'+filename
    print 'Scanning',datafile
 
@@ -30,21 +28,12 @@ def loop(filename):
            #print 'SLC word'
            
            evtsplit = evt.split('\n')
-           IP = evtsplit[2].split(':')[1]
-	   if IP == "192.168.1.20":
-	        #print "Skip 192.168.1.20"
-	   	continue
-           board[j] = int(IP[-2:]);
            date.append(evtsplit[1])
-
+           IP = evtsplit[2].split(':')[1]
+           board[j] = int(IP[-2:]);
+           
 	   for k in range(0,6):
-	     if k == 1:  # VP2: -3.3V
-	        fact = -6.9/2.2
-	     elif k == 2:  # VP3: +3.3V
-	        fact = 6.9/2.2	
-             else:
-	       fact = 24.0/2
-	     VPower[j,k]=float(evtsplit[k+3].split(':')[1])*5.0/pow(2,12)*fact  
+             VPower[j,k]=evtsplit[k+3].split(':')[1]  
            
 	   for k in range(0,3):
              thsplit = evtsplit[k+9].split(':')
@@ -58,42 +47,29 @@ def loop(filename):
            j = j+1
 	      
    print 'Temp = ', Temp[0:100]
-   
    hraw = [hex(int(a)) for a in Temp]  # Transfer back to hexadecimal
-   #hraw = []
-   #for ii in range(len(Temp)):
-   #  hraw.append('1')
-   #print hraw  
-   draw = [twos_comp(int(a,16), 13)*0.0625 for a in hraw] #2s complements
-   print 'Draw=',draw[0:20]
-   Temp = np.asarray(draw)
-   print 'Temp=',Temp[0:20]
+   braw = [bin(int(a)) for a in Temp] 
+   print 'Braw = ',braw
+   draw = [twos_comp(int(a,16), 13) for a in hraw] #2s complements
+   print 'Draw=',draw
+   #Temp = draw
    
    lab = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']   
    boards = set(board[np.where(board>0)])
    print 'Boards in run:',list(boards)
+   print date
    print 'Run start:', date[0]
-   vlab = ['Alim +15V', '-3.3V','+3.3V','LNA1','LNA2','LNA3']
    for id in boards:
    	   sel = np.where(board == id)  
 	   date_end = date[sel[0][-1]]
    	   print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
-	   
+	     
 	   pl.figure(1)
-   	   pl.plot(Temp[sel[0]])
-	   #tt = np.zeros(shape=(1,np.shape(sel)[1]),dtype=str)
-	   tt = [];
-	   for ii in range(0,np.shape(sel)[1],1):
-             #print ii,date[ii][10:16]
-	     if float(ii)/20==ii/20:
-	       tt.append(str(date[ii][11:16]))
-	     else:
-	       tt.append("")
-	   pl.xticks(range(len(tt)),tt,size='small')      
+   	   pl.plot(Temp[sel])
 	   pl.grid(True)
-	   pl.xlabel('UT [hh:ss]')
-	   pl.ylabel('Board temperature [$^o$C]')
-	   pl.title('Board {0}'.format(id))
+	   pl.xlabel('SLC measurment nb')
+	   pl.ylabel('Temperature')
+	   pl.title('Temperature')
 	   
 	   pl.figure(2)
 	   for i in range(np.shape(VPower)[1]):
@@ -103,8 +79,7 @@ def loop(filename):
 		pl.grid(True)
 		if i>3:
   		  pl.xlabel('SLC measurment nb')
-		pl.title(vlab[i])
-           
+		pl.title('Voltage'+str(i+1))
 		
 	   pl.figure(3)  #Trig Rate
 	   for i in range(np.shape(TrigRate)[1]):
@@ -119,9 +94,8 @@ def loop(filename):
 		if (len(boards)<2) | (sub==212 ):
 		        pl.xlabel('SLC measurment nb')
    		pl.legend()
-		pl.title('Board '+format(id))
-		
-   pl.show()
+		pl.title('Board '+str(id))
+   pl.draw()
    
    return        
  

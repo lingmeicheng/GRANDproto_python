@@ -1,19 +1,20 @@
 import os
 import time
 import sys
+import re
 import math
-
 import numpy as np
 import pylab as pl
 
-def loopEvents(att1,ext):
+def loopEvents(RUNID,att):
+   ext = 0	 
    DISPLAY = 0
    print 'DISPLAY = ',DISPLAY 
    pl.ion()
    if ext:
      filename = "sinCh1b1_"+att1+"dB.txt"
    else:
-     filename = "cal"+"_"+att1+"dB.txt"
+     filename = "C"+RUNID+"_b18.data"
    datafile = '../data/'+filename
    print 'Scanning',datafile
 
@@ -40,7 +41,7 @@ def loopEvents(att1,ext):
    data = list()
 
    j = 0;  # Index of array filling (because date & data are "append")
-   for i in range(j,nevts):  
+   for i in range(1,nevts+1):  
    	   if float(i)/100 == int(i/100):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
@@ -98,6 +99,7 @@ def loopEvents(att1,ext):
 		   
 		   for k in [0,1,2]:
 		     nz = np.where(thisEvent[k][:]!=0)
+		     print nz
 		     imax[j,k] = np.argmax(thisEvent[k][:]);
 		     Amax[j,k] = thisEvent[k][imax[j,k]];
 		     mub[j,k] = np.mean(thisEvent[k][nz])
@@ -137,6 +139,10 @@ def loopEvents(att1,ext):
        pl.grid(True)
                      
        #Pack up results
+       print nz
+       print j
+       print k
+       print a[nz]
        m[j,k] = np.mean(a[nz])
        em[j,k] = np.mean(b[nz])       
        print 'Channel',k,': mean=',m[j,k],'; stddev=',em[j,k]
@@ -173,19 +179,27 @@ def twos_comp(val, bits):
     return val   
 
 if __name__ == '__main__':
-     #loopEvents(sys.argv[1])
-
-    ext = 0
-    if ext == 1:
-      att=range(15,85,+10)
-    else:
-      att=range(0,130,10)
-    att = np.asarray(att)
+  
+  ext = 0  
+  runs=range(191,193)
+  att = np.empty([len(runs),1])
+  for i in range(np.size(runs)):
+    runid = runs[i]
+    
+    # Grab attenuation values forom config file
+    file = open("../data/C"+str(runid)+"_b18.cfg", "r")
+    for line in file:
+     if re.search("Attr1", line):
+         att1 = int(line.split()[2])
+     if re.search("Attr2", line):
+         att2 = int(line.split()[2])
+    att[i] = att1+att2
     print att
-    mm = np.empty([len(att),3])
-    emm = np.empty([len(att),3])
+    
+    mm = np.empty([len(runs),3])
+    emm = np.empty([len(runs),3])
     for i in range(len(att)):
-      res = loopEvents(str(att[i]),ext)      
+      res = loopEvents(str(runid),str(att[i]))      
       mm[i,:]=list(res['m'][0])
       emm[i,:]=list(res['em'][0])
     

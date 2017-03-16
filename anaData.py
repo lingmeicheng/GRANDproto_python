@@ -1,3 +1,4 @@
+# Displays data
 import os
 import time
 import sys
@@ -7,15 +8,22 @@ import numpy as np
 import pylab as pl
 from scipy.optimize import curve_fit
 
-def loopEvents(filename):
-   DISPLAY = 2
-   PATTERN = 0
-   nch = 4   #Nb of channels
+def loopEvents(RUNID,TYPE):
+   DISPLAY = 1  
+   if int(TYPE)<2:
+     nch = 4   #Nb of channels
+   else:
+     nch = 3
    print 'DISPLAY = ',DISPLAY 
-   print 'PATTERN = ',PATTERN 
+   print 'TYPE = ',TYPE 
    
    pl.ion()
-   datafile = '../data/'+filename
+   if TYPE == "0":
+     datafile = '../data/P'+str(RUNID)+'_b18.data'
+   if TYPE == "1":
+     datafile = '../data/C'+str(RUNID)+'_b18.data'  
+   if TYPE == "2":
+     datafile = '../data/R'+str(RUNID)+'_b18.data'  
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -40,12 +48,11 @@ def loopEvents(filename):
    data = list()
 
    j = 0;  # Index of array filling (because date & data are "append")
-   for i in range(j,nevts):  
+   for i in range(1,nevts+1):  
    	   if float(i)/100 == int(i/100):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
    	   evtsplit = evt.split('\n')
- 
    	   if np.size(evtsplit)>8:   # Event is of normal size
    		   date.append(evtsplit[1])
 		   IP = evtsplit[2][3:]
@@ -63,7 +70,7 @@ def loopEvents(filename):
    		   raw=evtsplit[9:][:]  #raw data
    		   raw2 = raw[0].split(" ") # Cut raw data list into samples
 		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
-   		   if PATTERN:
+   		   if TYPE == "0":
 			draw = [int(a) for a in raw2] 
 		   else:
   		        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
@@ -93,24 +100,26 @@ def loopEvents(filename):
  		     pl.ylabel('Amplitude [LSB]')
  		     pl.grid(True)
  		     pl.subplot(224)
- 		     pl.plot(t[3:],thisEvent[3][3:],'s')
+ 		     pl.plot(t[3:],thisEvent[3][3:])
  		     pl.xlabel('Time [mus]')
  		     pl.ylabel('Amplitude [LSB]')
  		     pl.grid(True)
  		     pl.suptitle('Board {0} Event {1}'.format(board[j],EvtId[j]))
  		     
-		     xr = t[3:]  #mus
-		     w = 2*np.pi*66.6  #rad/mus
-		     yr = thisEvent[3][3:]
-		     fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
-		     abeg = float(np.max(yr)-np.min(yr))/2.
-		     p, pcov = curve_fit(fitfunc,xr,yr,p0 = [abeg,0.0,0.0])  #Perform fit
-                     print 'Fit results:',p,np.sqrt(np.diag(pcov))
-		     xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
-		     pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
+		     if TYPE == "1":
+ 		       pl.plot(t[3:],thisEvent[3][3:],'s')
+  		       xr = t[3:]  #mus
+ 		       w = 2*np.pi*66.6666  #rad/mus
+		       yr = thisEvent[3][3:]
+		       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
+		       abeg = float(np.max(yr)-np.min(yr))/2.
+		       p, pcov = curve_fit(fitfunc,xr,yr,p0 = [abeg,0.0,0.0])  #Perform fit
+ 		       print 'Fit results:',p,np.sqrt(np.diag(pcov))
+		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
+		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
                   
 		     pl.show()
- 		     raw_input()
+		     raw_input()
  		     pl.close(j)
 
 		   
@@ -123,6 +132,9 @@ def loopEvents(filename):
    	   else:
    		   print 'Error! Empty event',i
 
+   if TYPE == "0":
+     return
+   
    trigtime = np.zeros(shape=(np.size(evts))) 
    timein = np.where(SSS>0)
    if np.size(timein) > 0:
@@ -136,6 +148,7 @@ def loopEvents(filename):
    DataRate = np.zeros(shape=(dur,2))
    TrigRate = np.zeros(shape=(dur,2))
    boards = set(board[np.where(board>0)])
+   
    print 'Run start:', date[0]
    print 'Boards in run:',list(boards)
    j = 0
@@ -283,4 +296,4 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     loopEvents(sys.argv[1])
+     loopEvents(sys.argv[1],sys.argv[2])
