@@ -24,6 +24,8 @@ def loopEvents(RUNID,TYPE):
      datafile = '../data/C'+str(RUNID)+'_b18.data'  
    if TYPE == "2":
      datafile = '../data/R'+str(RUNID)+'_b18.data'  
+   #datafile = '../grand_comm/datatest1.txt'  
+   
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -109,7 +111,7 @@ def loopEvents(RUNID,TYPE):
 		     if TYPE == "1":
  		       pl.plot(t[3:],thisEvent[3][3:],'s')
   		       xr = t[3:]  #mus
- 		       w = 2*np.pi*66.6666  #rad/mus
+ 		       w = 2*np.pi*66.667000  #rad/mus
 		       yr = thisEvent[3][3:]
 		       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
 		       abeg = float(np.max(yr)-np.min(yr))/2.
