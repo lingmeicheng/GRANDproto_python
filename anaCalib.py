@@ -14,7 +14,8 @@ def loopEvents(RUNID,att):
    if ext:
      filename = "sinCh1b1_"+att1+"dB.txt"
    else:
-     filename = "C"+RUNID+"_b18.data"
+     filename = "C"+RUNID+"_b01.data"
+   #datafile = '/root/GRANDproto/data/'+filename
    datafile = '../data/'+filename
    print 'Scanning',datafile
 
@@ -38,7 +39,7 @@ def loopEvents(RUNID,att):
    mub = np.zeros(shape=(nevts,3))
    sigb = np.zeros(shape=(nevts,3))
    
-   data = list()
+   #data = list()
 
    j = 0;  # Index of array filling (because date & data are "append")
    for i in range(1,nevts+1):  
@@ -66,12 +67,11 @@ def loopEvents(RUNID,att):
 		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
 		   hraw2 = [hex(int(a)) for a in raw2]  # TRansfer back to hexadecimal
    		   draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
- 
+ 		   draw = np.array(draw)*1./2048  # in Volts
    		   nsamples = len(draw)/4  # Separate data to each channel
    		   offset = nsamples/2.0
-   		   #print nsamples,"samples per channel --> offset = ",offset
 		   thisEvent = np.reshape(draw,(4,nsamples));
-   		   data.append(thisEvent) # Write to data list
+   		   #data.append(thisEvent) # Write to data list ... Not needed here
 		   if DISPLAY:
 		     print 'Event ',j, 'at date',date[j]
 		     t = np.array(range(np.shape(thisEvent)[1]))
@@ -138,8 +138,8 @@ def loopEvents(RUNID,att):
        pl.grid(True)
                      
        #Pack up results
-       m[j,k] = np.mean(a[nz])
-       em[j,k] = np.mean(b[nz])       
+       m[j,k] = np.mean(a)
+       em[j,k] = np.mean(b)       
        print 'Channel',k,': mean=',m[j,k],'; stddev=',em[j,k]
 
      j = j+1
@@ -147,7 +147,108 @@ def loopEvents(RUNID,att):
     
    return {'m':m, 'em':em}
      
+
+def anaRuns(runstart,runstop):   # Analyse runs and write result to file
+  runs=range(runstart,runstop)  
   
+  att = np.zeros(np.shape(runs))
+  mm = np.empty([len(runs),3])
+  emm = np.empty([len(runs),3])
+
+  for i in range(np.size(runs)):  #loop on runs
+    runid = runs[i]
+    # Grab attenuation values from config file
+    file = open("../data/C"+str(runid)+"_b01.cfg", "r")
+    #file = open("/root/GRANDproto/data/C"+str(runid)+"_b18.cfg", "r")
+    for line in file:
+      if re.search("Attr1", line):
+    	 att1 = int(line.split()[2])
+      if re.search("Attr2", line):
+    	 att2 = int(line.split()[2])
+    att[i] = att1+att2
+    print att1,att2,att[i]
+    print att
+    
+    res = loopEvents(str(runid),str(att[i]))      
+    mm[i,:]=list(res['m'][0])
+    emm[i,:]=list(res['em'][0])
+
+  # Write to file
+  conc = np.r_[att,mm[:,0],emm[:,0],mm[:,1],emm[:,1],mm[:,2],emm[:,2]]   # Concatenate results
+  conc = conc.reshape(7,np.size(att)) # Reshape in line = Att, Measure_Ch[i], Error_Ch[i]
+  filename = 'caliboutput_R{0}R{1}.txt'.format(runstart,runstop)
+  np.savetxt(filename,conc)  # Write to file
+
+    
+def anaRes(runstart,runstop):    
+    
+  # Read file
+  a = np.loadtxt('caliboutput_R{0}R{1}.txt'.format(runstart,runstop))
+  att = a[0,:]
+  mm = np.empty([len(att),3])
+  emm = np.empty([len(att),3])
+  for k in range(3):
+    mm[:,k] = a[2*k+1,:]
+    emm[:,k] = a[2*k+2,:]
+  
+  
+  sel = np.where((att>100) & (att<200))  #Fit range
+  a = 0.25
+  b = -5.8-a*127*2
+  #if ext == 0:
+  #  att = att*2 # Same coef on both channels
+  attdB = a*att+b
+  p = 1e-3*pow(10,attdB/10)
+  R= 50 #To be confirmed!!!
+  v = np.sqrt(p*R)
+ 
+  
+  fig = pl.figure(11)
+  for k in range(3):
+    pl.subplot(2,1,1)
+    pl.plot(att,mm[:,k],'+',label='Channel {0}'.format(k))
+    #z = np.polyfit(att[sel],mm[sel,k][0],1)  # Linear fit
+    #print 'Channel',k,', slope=',z[0],'LSB/dB Att coef'
+    #yth = att*z[0]+z[1]
+    #pl.plot(att,yth,'y--')
+    pl.subplot(2,1,2)
+    pl.plot(att,emm[:,k],'+',label='Channel {0}'.format(k))
+  pl.subplot(2,1,1)
+  pl.grid(True)
+  pl.xlabel('Attenuation coef [dB]')
+  pl.ylabel('Mean output level [LSB]')
+  pl.legend(loc='upper left')
+  pl.subplot(2,1,2)
+  pl.grid(True)
+  pl.xlabel('Attenuation coef [dB]')
+  pl.ylabel('StdDev [LSB]')
+  pl.legend(loc='lower left')
+  
+ 
+  fig = pl.figure(12)
+  for k in range(3):
+    z = np.polyfit(attdB[sel],mm[sel,k][0],1)  # Linear fit
+    yth = attdB*z[0]+z[1]
+    pl.subplot(2,1,1)
+    pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
+    pl.plot(attdB,yth,'y--')
+    print 'Channel',k,', slope=',z[0],'V/dBm'
+    pl.subplot(2,1,2)
+    pl.errorbar(v,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
+  pl.subplot(2,1,1)
+  pl.grid(True)
+  pl.xlabel('Input power [dBm]')
+  pl.ylabel('Mean output level [V]')
+  pl.legend(loc='upper left')
+  sbp2 = pl.subplot(2,1,2)
+  sbp2.set_xscale('log')
+  pl.grid(True)
+  pl.xlabel('Input amplitude [V]')
+  pl.ylabel('Mean output level [V]')
+  pl.legend(loc='upper left')
+  
+  
+   
 def get_1stone(val):
     if val == '0x1':
     	return 0
@@ -175,80 +276,9 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
   
-  ext = 0  
-  runs=range(241,296)
-  att = np.zeros(np.shape(runs))
-  mm = np.empty([len(runs),3])
-  emm = np.empty([len(runs),3])
+  #runs=range(9198,9366) # board 2
+  #runs=range(9380,9548)  # board 1
+  runs=range(500,627)  # board 1
+  #anaRuns(runs[0],runs[-1])
+  anaRes(runs[0],runs[-1])
 
-  for i in range(np.size(runs)):
-    runid = runs[i]
-    # Grab attenuation values from config file
-    file = open("../data/C"+str(runid)+"_b18.cfg", "r")
-    for line in file:
-      if re.search("Attr1", line):
-    	 att1 = int(line.split()[2])
-      if re.search("Attr2", line):
-    	 att2 = int(line.split()[2])
-    att[i] = att1+att2
-    print att1,att2,att[i]
-    print att
-    
-    res = loopEvents(str(runid),str(att[i]))      
-    mm[i,:]=list(res['m'][0])
-    emm[i,:]=list(res['em'][0])
-    
-  sel = np.where((att>100) & (att<200))  #Fit range
-  a = 0.25
-  b = -5.8-a*127*2
-  #if ext == 0:
-  #  att = att*2 # Same coef on both channels
-  attdB = a*att+b
-  p = 1e-3*pow(10,attdB/10)
-  R= 50 #To be confirmed!!!
-  v = np.sqrt(p*R)
- 
-  fig = pl.figure(11)
-  for k in range(3):
-    pl.subplot(2,1,1)
-    pl.plot(att,mm[:,k],label='Channel {0}'.format(k))
-    #z = np.polyfit(att[sel],mm[sel,k][0],1)  # Linear fit
-    #print 'Channel',k,', slope=',z[0],'LSB/dB Att coef'
-    #yth = att*z[0]+z[1]
-    #pl.plot(att,yth,'y--')
-    pl.subplot(2,1,2)
-    pl.plot(att,emm[:,k],label='Channel {0}'.format(k))
-  pl.subplot(2,1,1)
-  pl.grid(True)
-  pl.xlabel('Attenuation coef [dB]')
-  pl.ylabel('Mean output level [LSB]')
-  pl.legend(loc='upper left')
-  pl.subplot(2,1,2)
-  pl.grid(True)
-  pl.xlabel('Attenuation coef [dB]')
-  pl.ylabel('StdDev [LSB]')
-  pl.legend(loc='lower left')
- 
- 
-  fig = pl.figure(12)
-  for k in range(3):
-    z = np.polyfit(attdB[sel],mm[sel,k][0],1)  # Linear fit
-    yth = attdB*z[0]+z[1]
-    pl.subplot(2,1,1)
-    pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
-    pl.plot(attdB,yth,'y--')
-    print 'Channel',k,', slope=',z[0],'LSB/dBm'
-    pl.subplot(2,1,2)
-    pl.errorbar(v,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
-  pl.subplot(2,1,1)
-  pl.grid(True)
-  pl.xlabel('Input power [dBm]')
-  pl.ylabel('Mean output level [LSB]')
-  pl.legend(loc='upper left')
-  sbp2 = pl.subplot(2,1,2)
-  sbp2.set_xscale('log')
-  pl.grid(True)
-  pl.xlabel('Input amplitude [V]')
-  pl.ylabel('Mean output level [LSB]')
-  pl.legend(loc='upper left')
- 

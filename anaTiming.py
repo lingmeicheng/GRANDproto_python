@@ -25,7 +25,7 @@ def loopEvents(filename):
    TrigPattern = np.zeros(shape=(np.size(evts)))
    trigtime = np.zeros(shape=(np.size(evts)))
    data = list()
-
+   maxCoarse = [124997981, 124997993]  # Read from S299_bxx.data
    for i in range(1,np.size(evts)):  # Skip first elemt which is empty
    #for i in range(1,1000):  # Skip first elemt which is empty
    	   if float(i)/100 == int(i/100):
@@ -36,10 +36,10 @@ def loopEvents(filename):
    	   if np.size(evtsplit)>8:   # Event is of normal size
    		   date.append(evtsplit[1])
 		   IP = evtsplit[2][3:]
-		   if IP=='192.168.1.18':  #192.168.1.18
-		   	board[i] = 18;
-		   if IP=='192.168.1.19':  #192.168.1.19
-		   	board[i] = 19;
+		   if IP=='192.168.1.101':  
+		   	board[i] = 01;
+		   if IP=='192.168.1.102':  
+		   	board[i] = 02;
 				
    		   TS2[i]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> 8ns counter)
    		   tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
@@ -79,11 +79,13 @@ def loopEvents(filename):
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
      pl.figure(12)
      pl.hist(TS2[sel])
-     cor=125.0e6/float(max(TS2[sel]))  # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
+     cor=125e6/maxCoarse[int(id)-1]  # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
+     #cor=125e6/(float(max(TS2[sel]))*1.0363067952)  # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
+     # Cor coefficient adjusted for 10Hz trig rate in order to match exact period between events)
+     #cor=125e6/float(max(TS2[sel]))
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. Use same SSS for both cards
-
    trigtime1 = trigtime[np.where(board == list(boards)[0])]
    trigtime2 = trigtime[np.where(board == list(boards)[1])]
    tdiff = (trigtime2-trigtime1)*1e9  # Delta t in ns
@@ -111,10 +113,11 @@ def loopEvents(filename):
    #pl.grid(True)   
    #pl.plot(trigtime2[1:],'r')
    pl.subplot(211)
-   pl.plot(tdiff[1:])
-   pl.xlabel('Event nb')
+   pl.plot(trigtime1[1:],tdiff[1:])
+   pl.xlabel('Time [s]')
    pl.ylabel('trigtime_b2-trigtime_b1 [ns]')
    pl.grid(True)
+   pl.xlim(min(trigtime1),max(trigtime2))     
    pl.subplot(212)
    pl.hist(tdiff[1:],100)   
    pl.xlabel('trigtime_b2-trigtime_b1 [ns]')
