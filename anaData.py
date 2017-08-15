@@ -24,7 +24,8 @@ def loopEvents(RUNID,TYPE):
      datafile = '../data/C'+str(RUNID)+'_b18.data'  
    if TYPE == "2":
      datafile = '../data/R'+str(RUNID)+'_b18.data'  
-   #datafile = '../grand_comm/datatest1.txt'  
+   #datafile = '../data/test2604.txt'  
+   datafile = '../data/b.txt'  
    
    print 'Scanning',datafile
 
