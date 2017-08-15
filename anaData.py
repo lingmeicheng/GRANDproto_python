@@ -9,7 +9,8 @@ import pylab as pl
 from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,TYPE):
-   DISPLAY = 1  
+   pl.ion()
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -19,13 +20,13 @@ def loopEvents(RUNID,TYPE):
    
    pl.ion()
    if TYPE == "0":
-     datafile = '../data/P'+str(RUNID)+'_b18.data'
+     datafile = '../data/P'+str(RUNID)+'_b01.data'  #Pattern
    if TYPE == "1":
-     datafile = '../data/C'+str(RUNID)+'_b18.data'  
+     datafile = '../data/C'+str(RUNID)+'_b01.data'   #Calib
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b18.data'  
-   #datafile = '../data/test2604.txt'  
-   datafile = '../data/b.txt'  
+     datafile = '../data/R'+str(RUNID)+'_b01.data'  #Normal
+   if TYPE == "3":
+     datafile = '../data/M'+str(RUNID)+'_b01.data'  #MinBias
    
    print 'Scanning',datafile
 
@@ -56,17 +57,22 @@ def loopEvents(RUNID,TYPE):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
    	   evtsplit = evt.split('\n')
+	   #print evt
    	   if np.size(evtsplit)>8:   # Event is of normal size
+	           #print evtsplit[3]
    		   date.append(evtsplit[1])
 		   IP = evtsplit[2][3:]
 		   board[j] = int(IP[-2:]);
 		   		
    		   TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> 8ns counter)
-   		   tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
-   		   TS1Trig[i] = get_1stone(hex(tt))
+   		   #print TS2
+		   tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
+   		   TS1Trig[i] = tt
+		   #TS1Trig[i] = get_1stone(hex(tt))
 		   tpps=int(evtsplit[5][7:]) 
-		   TS1PPS[j]=get_1stone(hex(tpps))  # phase in 8ns slot for PPS
-   		   SSS[j]=int(evtsplit[6][4:])  # Elapsed seconds since start
+		   #TS1PPS[j]=get_1stone(hex(tpps))  # phase in 8ns slot for PPS
+   		   TS1PPS[j]=tpps
+		   SSS[j]=int(evtsplit[6][4:])  # Elapsed seconds since start
    		   EvtId[j] = int(evtsplit[7][3:])
    		   TrigPattern[j] = int(evtsplit[8][12:])
    		   # Data
@@ -78,7 +84,8 @@ def loopEvents(RUNID,TYPE):
 		   else:
   		        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
 			draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
- 
+                   draw = np.array(draw)*1./2048  # in Volts
+		   
    		   nsamples = len(draw)/4  # Separate data to each channel
    		   offset = nsamples/2.0
    		   #print nsamples,"samples per channel --> offset = ",offset
@@ -91,28 +98,30 @@ def loopEvents(RUNID,TYPE):
  		     pl.figure(j)
  		     pl.subplot(221)
  		     pl.plot(t[3:],thisEvent[0][3:])
- 		     pl.ylabel('Amplitude [LSB]')
+ 		     pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
  		     pl.subplot(222)
- 		     pl.ylabel('Amplitude [LSB]')
+ 		     pl.ylabel('Amplitude [V]')
  		     pl.plot(t[3:],thisEvent[1][3:])
  		     pl.grid(True)
  		     pl.subplot(223)
  		     pl.plot(t[3:],thisEvent[2][3:])
  		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [LSB]')
+ 		     pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
  		     pl.subplot(224)
  		     pl.plot(t[3:],thisEvent[3][3:])
  		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [LSB]')
+ 		     pl.ylabel('Amplitude [V]')
+
  		     pl.grid(True)
+
  		     pl.suptitle('Board {0} Event {1}'.format(board[j],EvtId[j]))
- 		     
+		     
 		     if TYPE == "1":
  		       pl.plot(t[3:],thisEvent[3][3:],'s')
   		       xr = t[3:]  #mus
- 		       w = 2*np.pi*66.667000  #rad/mus
+ 		       w = 2*np.pi*66.666666  #rad/mus
 		       yr = thisEvent[3][3:]
 		       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
 		       abeg = float(np.max(yr)-np.min(yr))/2.
@@ -120,17 +129,21 @@ def loopEvents(RUNID,TYPE):
  		       print 'Fit results:',p,np.sqrt(np.diag(pcov))
 		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
 		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
-                  
+		     
 		     pl.show()
 		     raw_input()
  		     pl.close(j)
-
 		   
 		   for k in range(nch):
-		     imax[j,k] = np.argmax(thisEvent[k][:]);
+		     imax[j,k] = np.argmax(thisEvent[k][3:])+3;  # Skip 1st 3 points because could be left overs from previous events
+		     #print k,np.argmax(thisEvent[k][3:]),thisEvent[k][imax[j,k]];
+		     #print thisEvent[k][:]
+		     #raw_input()
 		     Amax[j,k] = thisEvent[k][imax[j,k]];
-		     mub[j,k] = np.mean(thisEvent[k][1:])
-		     sigb[j,k] = np.std(thisEvent[k][1:])
+		     mub[j,k] = np.mean(thisEvent[k][1:offset-5])
+		     sigb[j,k] = np.std(thisEvent[k][1:offset-5])
+                  
+
 		   j = j+1
    	   else:
    		   print 'Error! Empty event',i
@@ -139,6 +152,8 @@ def loopEvents(RUNID,TYPE):
      return
    
    trigtime = np.zeros(shape=(np.size(evts))) 
+   deltat = np.zeros(shape=(np.size(evts)))   #Delta_t to previous event on same antena
+   
    timein = np.where(SSS>0)
    if np.size(timein) > 0:
      tdeb = min(SSS[timein])
@@ -160,12 +175,14 @@ def loopEvents(RUNID,TYPE):
      date_end = date[sel[0][-1]]
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
      if np.size(timein) > 0:
-       cor=125.0e6/float(max(TS2[sel]))  # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
+       cor=125.0e6/124997981
+       #cor=125.0e6/float(max(TS2[sel]))  # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
      else:
        cor=1.0
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
      trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. Use same SSS for both cards
+     deltat[sel] = np.diff(trigtime[sel])
      # Compute trig rate
      for i in range(dur):
 	ts = tdeb+i
@@ -196,77 +213,82 @@ def loopEvents(RUNID,TYPE):
        print 'Channel',k,': Max < zero=',np.size(abline),'/',np.size(sel),'=',float(np.size(abline))/np.size(sel)
        
        pl.figure(21+k)
-       if id == list(boards)[0]:
-         pl.subplot(231)
-       else:
-         pl.subplot(234)
-         pl.xlabel('Index of signal max')
+       
+       pl.subplot(231)
+       pl.hist(mub[sel,k][0],offset*2)
+       pl.xlabel('Baseline mean')
+       pl.title('Board {0}'.format(id))
+       pl.grid(True)
+
+       pl.subplot(235)
+       pl.plot(mub[sel,k][0],'+')
+       pl.plot(Amax[sel,k][0],'o')
+       pl.xlabel('Event ID')
+       pl.ylabel('Mean amp (bline & max)')
+       pl.title('Board {0}'.format(id))
+       pl.grid(True)
+
+       pl.subplot(234)
+       pl.xlabel('Index of signal max')
        pl.hist(imax[sel,k][0],offset*2)
        pl.title('Board {0}'.format(id))
        pl.grid(True)
        
-       if id == list(boards)[0]:
-         pl.subplot(232)
-       else:
-         pl.subplot(235)
-         pl.xlabel('Max amplitude')
+       pl.subplot(236)
+       pl.xlabel('Max amplitude')
        pl.hist(Amax[sel,k][0],offset*2)
        pl.title('Board {0}'.format(id))
        pl.grid(True)
-       print 'Channel',k,': peak @ ',np.mean((Amax[sel,k][0])),', std dev=',np.std((Amax[sel,k][0])),', rel error=',np.std((Amax[sel,k][0]))/np.mean((Amax[sel,k][0]))
-       
-       if id == list(boards)[0]:
-         pl.subplot(233)
-       else:
-         pl.subplot(236)
-         pl.xlabel('Index of signal max')
-       pl.plot(imax[sel,k][0],Amax[sel,k][0],'+')
-       pl.ylabel('Max amplitude')
+              
+       pl.subplot(232)
+       diffAmp = Amax[sel,k][0]-mub[sel,k][0]
+       pl.hist(sigb[sel,k][0],offset*2)
+       pl.xlabel('Bline std dev')
        pl.title('Board {0}'.format(id))
        pl.grid(True)
        
-       if 0:
- 	 pl.figure(11+k)
- 	 pl.subplot(231)
- 	 pl.plot(imax[sel,k][0])
- 	 pl.title('Position of signal max')
- 	 pl.grid(True)
- 	 pl.subplot(232)
- 	 pl.plot(np.exp(Amax[sel,k])[0])
- 	 pl.title('Signal max')
- 	 pl.grid(True)
- 	 pl.subplot(233)
- 	 pl.plot(imax[sel,k][0],mub[sel,k][0],'+')
- 	 pl.xlabel('Position of signal max')
- 	 pl.ylabel('Baseline mean')
- 	 pl.grid(True)
- 	 pl.subplot(234)
- 	 pl.plot(mub[sel,k][0])
- 	 pl.title('Baseline mean')
- 	 pl.grid(True)
- 	 pl.subplot(235)
- 	 pl.plot(sigb[sel,k][0])
- 	 pl.grid(True)
- 	 pl.title('Baseline std dev')
- 	 pl.subplot(236)
- 	 pl.plot(imax[sel,k][0],sigb[sel,k][0],'+')
- 	 pl.grid(True)
- 	 pl.xlabel('Position of signal max')
- 	 pl.ylabel('Baseline std dev')
-     
+       print 'Channel',k,': bline @ ',np.mean((mub[sel,k][0])),'pm',np.std((mub[sel,k][0])),'V. Std dev=',np.mean((sigb[sel,k][0])),'V'
+       print 'Channel',k,': Peak @ ',np.mean((Amax[sel,k][0])),'V, std dev=',np.std((Amax[sel,k][0])),'V, rel error=',np.std((Amax[sel,k][0]))/np.mean((Amax[sel,k][0]))*100,'%'
+       print 'Channel',k,': Peak - bline @ ',np.mean((diffAmp)),'V, std dev=',np.std((diffAmp)),'V, rel error=',np.std((diffAmp))/np.mean((diffAmp))*100,'%'
+       
+       pl.subplot(233)
+       pl.plot(mub[sel,k][0],sigb[sel,k][0],'+')
+       pl.xlabel('Baseline mean')
+       pl.ylabel('Bline std dev')
+       pl.title('Board {0}'.format(id))
+       pl.grid(True)
      j = j+1
- 
-  
-   
-   pl.ion()
-   #pl.show()
-   #return
 
-   # Now write results to file
-     #datafile = open('data_b'+str(id)+'.txt', 'w')
-     #np.savetxt(datafile, board[sel])
-     #np.savetxt(datafile, EvtId[sel])
    
+   sel = np.where(trigtime>0)  #GPS time info present
+   if np.size(sel)>0:
+     first = trigtime[sel[0][0]] 
+     last = trigtime[sel[0][-1]]
+     dur = last-first
+     print 'Nevents = ',np.size(sel)
+     print 'Duration [s]',first,last,dur   
+     rate = np.size(sel)/dur
+     print 'Rate=',rate,'Hz'
+     pl.figure(18)
+     pl.plot(trigtime)
+     
+     # Now check trig rate vs exected
+     consigne = 1; #Expected trig period [s]
+     deltat = (deltat-consigne)*1e9;  #  [ns]
+     seldeltat = np.where(abs(deltat)<2000)  #1mus difference max
+     print 'Nevents with ~',consigne,'s time diff =',np.size(seldeltat)
+     print 'Time diff offset to',consigne,'s =',np.mean(deltat[seldeltat]),'ns, std dev=',np.std(deltat[seldeltat]),'ns.'
+     pl.figure(19)
+     pl.subplot(211)     
+     pl.plot(trigtime[seldeltat],deltat[seldeltat])
+     pl.xlabel('Time [s]')
+     pl.ylabel('$\Delta$t [ns]')
+     pl.grid(True)
+     pl.xlim(min(trigtime[seldeltat]),max(trigtime[seldeltat]))     
+     pl.subplot(212)
+     pl.hist(deltat[seldeltat],100)
+     pl.xlabel('$\Delta$t [ns]')
+     pl.show()
   
   
 def get_1stone(val):
@@ -299,4 +321,5 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
+     print sys.argv
      loopEvents(sys.argv[1],sys.argv[2])
