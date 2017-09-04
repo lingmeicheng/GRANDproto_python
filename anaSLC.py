@@ -23,8 +23,7 @@ def loop(filename):
    j = 0
    for i in range(j,nevts):
       evt = evts[i]
-      #print evt
-      if len(evt)>59:  #59 is ACK size
+      if len(evt)>60:  #59 is ACK size
            #print 'SLC word'
            
            evtsplit = evt.split('\n')
@@ -46,18 +45,14 @@ def loop(filename):
              TrigRate[j,k] = evtsplit[13+k].split(':')[1]
            j = j+1
 	      
-   print 'Temp = ', Temp[0:100]
    hraw = [hex(int(a)) for a in Temp]  # Transfer back to hexadecimal
    braw = [bin(int(a)) for a in Temp] 
-   print 'Braw = ',braw
    draw = [twos_comp(int(a,16), 13) for a in hraw] #2s complements
-   print 'Draw=',draw
    #Temp = draw
    
    lab = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']   
    boards = set(board[np.where(board>0)])
    print 'Boards in run:',list(boards)
-   print date
    print 'Run start:', date[0]
    for id in boards:
    	   sel = np.where(board == id)  

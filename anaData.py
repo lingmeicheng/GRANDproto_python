@@ -6,11 +6,11 @@ import math
 
 import numpy as np
 import pylab as pl
-from scipy.optimize import curve_fit
+#from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,TYPE):
    pl.ion()
-   DISPLAY = 0
+   DISPLAY = 1
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -24,10 +24,12 @@ def loopEvents(RUNID,TYPE):
    if TYPE == "1":
      datafile = '../data/C'+str(RUNID)+'_b01.data'   #Calib
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b01.data'  #Normal
+     datafile = '../data/R'+str(RUNID)+'_b02.data'  #Normal
    if TYPE == "3":
      datafile = '../data/M'+str(RUNID)+'_b01.data'  #MinBias
-   
+   #datafile = '../data/data1kHz_2.txt'
+   #datafile = '../data/gen400kHz.txt'
+   #datafile = '../data/data12.txt'
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -181,7 +183,8 @@ def loopEvents(RUNID,TYPE):
        cor=1.0
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
-     trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. Use same SSS for both cards
+     trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. 
+     
      deltat[sel] = np.diff(trigtime[sel])
      # Compute trig rate
      for i in range(dur):
