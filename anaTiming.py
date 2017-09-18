@@ -25,8 +25,8 @@ def loopEvents(filename):
    TrigPattern = np.zeros(shape=(np.size(evts)))
    trigtime = np.zeros(shape=(np.size(evts)))
    data = list()
-   maxCoarse = [124997981, 124997993]  # Read from S299_bxx.data
-   maxCoarse = [124997962, 124998239] # Read from S22_bxx.data
+   #maxCoarse = [124997981, 124997993]  # Read from S299_bxx.data
+   maxCoarse = [124998238.5, 124998238.4] # Read from S22_bxx.data
    j = 0
    for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty)
    #for i in range(1001,2001):  # Skip first elemt which is empty
@@ -85,18 +85,23 @@ def loopEvents(filename):
      pl.xlabel("Distrib of TS2 (8ns step counter)")
      
      # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
-     cor=125e6/maxCoarse[int(id)-1]  
-     #cor=125e6/float(max(TS2[sel])) 
+     #cor=1
+     #cor=125e6/float(max(TS2[sel]))
+     cor=125e6/float(maxCoarse[int(id)-1]) 
+     print max(TS2[sel]), maxCoarse[int(id)-1]
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
-     trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. Use same SSS for both cards. Waring: requires 100% trigger + odd nb of events!
-     
-     newS = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second  
-     
-   newS = newS+1  
+     trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
+     if id == 1:
+       newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
+     if id == 2:
+       newS2 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 2  
+          
    trigtime1 = trigtime[np.where(board == list(boards)[0])]
    trigtime2 = trigtime[np.where(board == list(boards)[1])]
+   #TS21 = TS2[np.where(board == list(boards)[0])]  # This is the clock count for the 1st event in the new second
    tdiff = (trigtime2-trigtime1)*1e9  # Delta t in ns
+   dPPS = (trigtime2[newS2]-trigtime1[newS1])*1e9  # Delta t @ new PPS in ns
    
    tdiff_b1 = np.zeros(shape=(np.size(trigtime1)))
    for i in range(len(trigtime1)-1):
@@ -114,7 +119,7 @@ def loopEvents(filename):
    
    sel = np.where(np.abs(tdiff)<300)[[0][-1]]  
    print 'Delta Trig Time = ',np.mean(tdiff[sel]),'+-',np.std(tdiff[sel]),'ns'
-   print 'Delta Trig Time @ new PPS = ',np.mean(tdiff[newS]),'+-',np.std(tdiff[newS]),'ns'
+   print 'Delta Trig Time @ new PPS = ',np.mean(dPPS),'+-',np.std(dPPS),'ns'
    pl.figure(1)
    pl.plot(trigtime1[1:],label='Board 1')
    pl.hold(True)   
@@ -127,16 +132,16 @@ def loopEvents(filename):
    pl.figure(21)
    pl.subplot(311)
    pl.plot(trigtime1[sel],tdiff[sel])
-   pl.plot(trigtime1[newS],tdiff[newS],marker="o")
-   pl.xlabel('Time [s]')
+   pl.plot(trigtime1[newS1],dPPS,marker="o")
+   pl.xlabel('Time [ns]')
    pl.ylabel('trigtime_b2-trigtime_b1 [ns]')
    pl.grid(True)
-   pl.xlim(min(trigtime1),max(trigtime2))     
+   pl.xlim(min(trigtime1),max(trigtime1))     
    pl.subplot(312)
    pl.hist(tdiff[sel],100)   
    pl.xlabel('trigtime_b2-trigtime_b1 [ns]')
    pl.subplot(313)
-   pl.hist(tdiff[newS],100)   
+   pl.hist(dPPS,100)   
    pl.xlabel('trigtime_b2-trigtime_b1 @ newPPS [ns]')
    
    pl.figure(18)
@@ -160,6 +165,8 @@ def loopEvents(filename):
    pl.xlabel('Consecutive Delta Trigtime [ms]')
    pl.show()
 
+   
+   
 def get_1stone(val):
     if val == '0x1':
     	return 0

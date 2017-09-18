@@ -29,7 +29,8 @@ def loopEvents(RUNID,TYPE):
      datafile = '../data/M'+str(RUNID)+'_b01.data'  #MinBias
    #datafile = '../data/data1kHz_2.txt'
    #datafile = '../data/gen400kHz.txt'
-   #datafile = '../data/data12.txt'
+   #datafile = '../data/data6.txt'
+   #datafile = '../data/10122016/data_night.txt'
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -98,23 +99,35 @@ def loopEvents(RUNID,TYPE):
 		     t = np.array(range(np.shape(thisEvent)[1]))
  		     t = t* 10e-3  #in mus
  		     pl.figure(j)
- 		     pl.subplot(221)
+		     if TYPE == "1":
+   		       pl.subplot(221)
+ 		     else:
+		       pl.subplot(311)
  		     pl.plot(t[3:],thisEvent[0][3:])
+ 		     pl.xlabel('Time [mus]')
  		     pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
- 		     pl.subplot(222)
+		     if TYPE == "1":
+   		       pl.subplot(222)
+ 		     else:
+		       pl.subplot(312)
+ 		     pl.xlabel('Time [mus]')
  		     pl.ylabel('Amplitude [V]')
  		     pl.plot(t[3:],thisEvent[1][3:])
  		     pl.grid(True)
- 		     pl.subplot(223)
+		     if TYPE == "1":
+   		       pl.subplot(223)
+ 		     else:
+		       pl.subplot(313)
  		     pl.plot(t[3:],thisEvent[2][3:])
  		     pl.xlabel('Time [mus]')
  		     pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
- 		     pl.subplot(224)
- 		     pl.plot(t[3:],thisEvent[3][3:])
- 		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+		     if TYPE == "1":
+ 		       pl.subplot(224)
+ 		       pl.plot(t[3:],thisEvent[3][3:])
+ 		       pl.xlabel('Time [mus]')
+ 		       pl.ylabel('Amplitude [V]')
 
  		     pl.grid(True)
 
@@ -132,8 +145,13 @@ def loopEvents(RUNID,TYPE):
 		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
 		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
 		     
-		     pl.show()
-		     raw_input()
+		     mamp = [0,0,0]
+		     for ch in range(3):
+		       mamp[ch] = np.max(thisEvent[ch][3:])-np.min(thisEvent[ch][3:])
+		     print np.max(mamp)
+		     if np.max(mamp)>1:
+		       pl.show()
+		       raw_input()
  		     pl.close(j)
 		   
 		   for k in range(nch):
@@ -274,24 +292,29 @@ def loopEvents(RUNID,TYPE):
      print 'Rate=',rate,'Hz'
      pl.figure(18)
      pl.plot(trigtime)
+     pl.xlabel('Evt ID')
+     pl.ylabel('Trig time [s]')
      
-     # Now check trig rate vs exected
-     consigne = 1; #Expected trig period [s]
-     deltat = (deltat-consigne)*1e9;  #  [ns]
-     seldeltat = np.where(abs(deltat)<2000)  #1mus difference max
-     print 'Nevents with ~',consigne,'s time diff =',np.size(seldeltat)
-     print 'Time diff offset to',consigne,'s =',np.mean(deltat[seldeltat]),'ns, std dev=',np.std(deltat[seldeltat]),'ns.'
-     pl.figure(19)
-     pl.subplot(211)     
-     pl.plot(trigtime[seldeltat],deltat[seldeltat])
-     pl.xlabel('Time [s]')
-     pl.ylabel('$\Delta$t [ns]')
-     pl.grid(True)
-     pl.xlim(min(trigtime[seldeltat]),max(trigtime[seldeltat]))     
-     pl.subplot(212)
-     pl.hist(deltat[seldeltat],100)
-     pl.xlabel('$\Delta$t [ns]')
-     pl.show()
+     if 0:
+       # Now check trig rate vs exected
+       consigne = 1; #Expected trig period [s]
+       deltat = (deltat-consigne)*1e9;  #  [ns]
+       seldeltat = np.where(abs(deltat)<2000)  #1mus difference max
+       print 'Nevents with ~',consigne,'s time diff =',np.size(seldeltat)
+       print 'Time diff offset to',consigne,'s =',np.mean(deltat[seldeltat]),'ns, std dev=',np.std(deltat[seldeltat]),'ns.'
+       pl.figure(19)
+       pl.subplot(211)
+       pl.plot(trigtime[seldeltat],deltat[seldeltat])
+       pl.xlabel('Time [s]')
+       pl.ylabel('$\Delta$t [ns]')
+       pl.grid(True)
+       print seldeltat
+       print trigtime[seldeltat]
+       pl.xlim(min(trigtime[seldeltat]),max(trigtime[seldeltat])+1)
+       pl.subplot(212)
+       pl.hist(deltat[seldeltat],100)
+       pl.xlabel('$\Delta$t [ns]')
+       pl.show()
   
   
 def get_1stone(val):

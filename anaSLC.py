@@ -19,6 +19,8 @@ def loop(filename):
    VPower = np.zeros(shape=(nevts,6))
    Th = np.zeros(shape=(nevts,3,2))
    Temp = np.zeros(shape=(np.size(evts)))
+   maxCoarse = np.zeros(shape=(np.size(evts)))
+   
    TrigRate = np.zeros(shape=(nevts,7))
    j = 0
    for i in range(j,nevts):
@@ -40,15 +42,17 @@ def loop(filename):
              Th[j,k,1] = thsplit[1].split(' ')[1]
 	     
            Temp[j] = evtsplit[12].split(':')[1]
-	   
+
            for k in range(0,7):
              TrigRate[j,k] = evtsplit[13+k].split(':')[1]
+
+	   maxCoarse[j] = evtsplit[20].split(':')[1]
+	   
            j = j+1
 	      
    hraw = [hex(int(a)) for a in Temp]  # Transfer back to hexadecimal
    braw = [bin(int(a)) for a in Temp] 
    draw = [twos_comp(int(a,16), 13) for a in hraw] #2s complements
-   #Temp = draw
    
    lab = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']   
    boards = set(board[np.where(board>0)])
@@ -87,9 +91,17 @@ def loop(filename):
 		pl.grid(True)
 		pl.ylabel('TrigRate [Hz]')
 		if (len(boards)<2) | (sub==212 ):
-		        pl.xlabel('SLC measurment nb')
+		        pl.xlabel('SLC measurment nb')   
    		pl.legend()
 		pl.title('Board '+str(id))
+		
+	   pl.figure(4)  #MaxCoarse
+	   pl.subplot(211)
+	   pl.plot(maxCoarse[sel])
+	   pl.subplot(212)
+	   pl.hist(maxCoarse[sel])
+	   print 'maxCoarse counter = ',np.mean(maxCoarse[sel]),'+-',np.std(maxCoarse[sel]),' vs 1.25e+8'
+		
    pl.draw()
    
    return        
