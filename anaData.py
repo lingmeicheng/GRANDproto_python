@@ -10,7 +10,7 @@ import pylab as pl
 
 def loopEvents(RUNID,TYPE):
    pl.ion()
-   DISPLAY = 1
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -24,7 +24,7 @@ def loopEvents(RUNID,TYPE):
    if TYPE == "1":
      datafile = '../data/C'+str(RUNID)+'_b01.data'   #Calib
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b02.data'  #Normal
+     datafile = '../data/R'+str(RUNID)+'_b01.data'  #Normal
    if TYPE == "3":
      datafile = '../data/M'+str(RUNID)+'_b01.data'  #MinBias
    #datafile = '../data/data1kHz_2.txt'
@@ -145,13 +145,13 @@ def loopEvents(RUNID,TYPE):
 		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
 		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
 		     
-		     mamp = [0,0,0]
-		     for ch in range(3):
-		       mamp[ch] = np.max(thisEvent[ch][3:])-np.min(thisEvent[ch][3:])
-		     print np.max(mamp)
-		     if np.max(mamp)>1:
-		       pl.show()
-		       raw_input()
+		     #mamp = [0,0,0]
+		     #for ch in range(3):
+		     #  mamp[ch] = np.max(thisEvent[ch][3:])-np.min(thisEvent[ch][3:])
+		     #print np.max(mamp)
+		     #if np.max(mamp)>1:
+		     pl.show()
+		     raw_input()
  		     pl.close(j)
 		   
 		   for k in range(nch):

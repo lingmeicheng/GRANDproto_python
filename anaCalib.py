@@ -191,37 +191,33 @@ def anaRes(runstart,runstop):
     mm[:,k] = a[2*k+1,:]
     emm[:,k] = a[2*k+2,:]
   
-  
   sel = np.where((att>100) & (att<200))  #Fit range
   a = 0.25
-  b = -5.8-a*127*2
-  #if ext == 0:
-  #  att = att*2 # Same coef on both channels
-  attdB = a*att+b
-  p = 1e-3*pow(10,attdB/10)
-  R= 50 #To be confirmed!!!
-  v = np.sqrt(p*R)
- 
+  b = -63.5-9  #2*4.5dB attenuator insertion loss
+  attdB = att*a+b  # att = 0dB for att=127 on both attenuators
+  vin = 0.325/2*pow(10,attdB/20) # [V] 
+  # V = 0.325Vpp  @ attenuator input (V = 0.262Vpp @ Ch4 ADC because of impedance!=50 ohm))
+  # Then 10^(-attdB/20) attenuation & factor 1/2 because of 3 channels split 
   
   fig = pl.figure(11)
   for k in range(3):
     pl.subplot(2,1,1)
-    pl.plot(att,mm[:,k],'+',label='Channel {0}'.format(k))
+    pl.plot(att,mm[:,k],'o',markersize=6,label='Channel {0}'.format(k))
     #z = np.polyfit(att[sel],mm[sel,k][0],1)  # Linear fit
     #print 'Channel',k,', slope=',z[0],'LSB/dB Att coef'
     #yth = att*z[0]+z[1]
     #pl.plot(att,yth,'y--')
     pl.subplot(2,1,2)
-    pl.plot(att,emm[:,k],'+',label='Channel {0}'.format(k))
+    pl.plot(att,emm[:,k],'o',markersize=6,label='Channel {0}'.format(k))
   pl.subplot(2,1,1)
   pl.grid(True)
-  pl.xlabel('Attenuation coef [dB]')
-  pl.ylabel('Mean output level [LSB]')
+  pl.xlabel('$\Sigma$attenuation indexes')
+  pl.ylabel('Mean output level [V]')
   pl.legend(loc='upper left')
   pl.subplot(2,1,2)
   pl.grid(True)
-  pl.xlabel('Attenuation coef [dB]')
-  pl.ylabel('StdDev [LSB]')
+  pl.xlabel('$\Sigma$attenuation indexes')
+  pl.ylabel('StdDev [V]')
   pl.legend(loc='lower left')
   
  
@@ -232,18 +228,18 @@ def anaRes(runstart,runstop):
     pl.subplot(2,1,1)
     pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
     pl.plot(attdB,yth,'y--')
-    print 'Channel',k,', slope=',z[0],'V/dBm'
+    print 'Channel',k,', slope=',z[0],'V/dB'
     pl.subplot(2,1,2)
-    pl.errorbar(v,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
+    pl.errorbar(vin,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
   pl.subplot(2,1,1)
   pl.grid(True)
-  pl.xlabel('Input power [dBm]')
+  pl.xlabel('Quartz signal attenuation [dB]')
   pl.ylabel('Mean output level [V]')
   pl.legend(loc='upper left')
   sbp2 = pl.subplot(2,1,2)
   sbp2.set_xscale('log')
   pl.grid(True)
-  pl.xlabel('Input amplitude [V]')
+  pl.xlabel('Signal amplitude @ channel input [Vpp]')
   pl.ylabel('Mean output level [V]')
   pl.legend(loc='upper left')
   
@@ -276,9 +272,7 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
   
-  #runs=range(9198,9366) # board 2
-  #runs=range(9380,9548)  # board 1
-  runs=range(500,627)  # board 1
+  runs=range(740,752)  # board 1
   #anaRuns(runs[0],runs[-1])
   anaRes(runs[0],runs[-1])
 
