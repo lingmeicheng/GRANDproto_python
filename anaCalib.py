@@ -272,7 +272,8 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
   
-  runs=range(740,752)  # board 1
+  #runs=range(740,752)  # board 1 - Sep 2017 - channel 02 bad
+  runs=range(801,814)  # board 1 - Oct 2017 - channel 02 now good!
   #anaRuns(runs[0],runs[-1])
   anaRes(runs[0],runs[-1])
 

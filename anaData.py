@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 import pylab as pl
-#from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,TYPE):
    pl.ion()
