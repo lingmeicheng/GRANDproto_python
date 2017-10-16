@@ -86,12 +86,13 @@ def loopEvents(filename):
      
      # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
      #cor=1
-     #cor=125e6/float(max(TS2[sel]))
-     cor=125e6/float(maxCoarse[int(id)-1]) 
+     cor=125e6/float(max(TS2[sel]))
+     #cor=125e6/float(maxCoarse[int(id)-1]) 
      print max(TS2[sel]), maxCoarse[int(id)-1]
      print 'Correction factor for 125MHz clock for board',id,':',cor
      # Build trig time
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
+     
      if id == 1:
        newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
      if id == 2:
@@ -131,7 +132,7 @@ def loopEvents(filename):
    
    pl.figure(21)
    pl.subplot(311)
-   pl.plot(trigtime1[sel],tdiff[sel])
+   pl.plot(trigtime1,tdiff)
    pl.plot(trigtime1[newS1],dPPS,marker="o")
    pl.xlabel('Time [ns]')
    pl.ylabel('trigtime_b2-trigtime_b1 [ns]')
