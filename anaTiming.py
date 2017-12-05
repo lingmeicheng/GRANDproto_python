@@ -28,8 +28,9 @@ def loopEvents(filename):
    #maxCoarse = [124997981, 124997993]  # Read from S299_bxx.data
    maxCoarse = [124998238.5, 124998238.4] # Read from S22_bxx.data
    j = 0
-   for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty)
-   #for i in range(1001,2001):  # Skip first elemt which is empty
+   #for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty) #Even nb of events
+   #for i in range(1001,np.size(evts)-1):  # Skip at least first elemt (empty) # Odd nb of events
+   for i in range(101,10001):  # Skip first elemt which is empty
    	   if float(i)/100 == int(i/100):
 	   	print 'Event ',i
    	   evt = evts[i]
@@ -38,9 +39,9 @@ def loopEvents(filename):
    	   if np.size(evtsplit)>8:   # Event is of normal size
    		   date.append(evtsplit[1])
 		   IP = evtsplit[2][3:]
-		   if IP=='192.168.1.101':  
+		   if IP=='192.168.1.103':  
 		   	board[j] = 01;
-		   if IP=='192.168.1.102':  
+		   if IP=='192.168.1.106':  
 		   	board[j] = 02;
 				
    		   TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> 8ns counter)
@@ -134,7 +135,7 @@ def loopEvents(filename):
    pl.subplot(311)
    pl.plot(trigtime1,tdiff)
    pl.plot(trigtime1[newS1],dPPS,marker="o")
-   pl.xlabel('Time [ns]')
+   pl.xlabel('Time [s]')
    pl.ylabel('trigtime_b2-trigtime_b1 [ns]')
    pl.grid(True)
    pl.xlim(min(trigtime1),max(trigtime1))     
