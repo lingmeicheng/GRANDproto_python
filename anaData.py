@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,TYPE,folder,BOARDID):
    pl.ion()
-   DISPLAY = 1
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:

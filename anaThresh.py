@@ -18,10 +18,14 @@ a = np.loadtxt(fname)
 pat = a[:,0]
 th = a[:,1]
 nb = a[:,2]
+zer = np.where(nb==0)
 if TYPE=='n':
   y = np.asarray(nb)/dur
+  y[zer] = y[zer]+0.1
 if TYPE=='s':
   y = np.asarray(nb)/(dur*10*2)  #10Hz square 
+  y[zer] = y[zer]+0.01
+  
 pati = [1000,1,10000,10,100000,100]
 ch=['X+','X-','Y+','Y-','Z+','Z-']
 c = ['b','b','g','g','r','r']
@@ -32,14 +36,13 @@ for i in range(np.size(pati)):
   sel = np.where(pat==pati[i])
   ax.plot(th[sel],y[sel],lstyle[i],color=c[i],marker='*',label=ch[i],linewidth=2)
   
+ax.set_yscale('log')
 if TYPE=='n':
-  ax.set_title('Noise trigger - board {0}'.format(boardid))
+  ax.set_title('Trigger board {0} - Input = OFF'.format(boardid))
   ax.set_ylabel('Trig rate (Hz)')
-  #ax.set_yscale('log')
-  rate = rate+0.
-  ax.set_ylim([-0.1,np.max(y)*1.1])
+  ax.set_ylim([0.05,np.max(y)*1.1])
 if TYPE=='s':
-  ax.set_title('Signal trigger - board {0}'.format(boardid))
+  ax.set_title('Trigger board {0} - Input = Sin 66MHz 400mVpp-30dB-splitter'.format(boardid))
   ax.set_ylabel('$N_{Trig}/N_{Signal}$')
 
 ax.set_xlabel('Threshold (mV)')

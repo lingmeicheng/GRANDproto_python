@@ -39,7 +39,7 @@ for k in range(3):
 pl.grid(True)
 pl.xlabel('Frequency (MHz)')
 pl.ylabel('Output (V)')
-pl.title('Freq calib 400mVpp + 30dB + spliter - board {0}'.format(boardid))  
+pl.title('Freq calib board {0} - Input = Sin 100mVpp-30dB-splitter'.format(boardid))  
 pl.legend(loc='best')
 #pl.show()  
 
