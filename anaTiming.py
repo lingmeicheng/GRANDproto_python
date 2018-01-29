@@ -1,13 +1,16 @@
 import os
 import time
 import sys
+import mx.DateTime
 import math
 
 import numpy as np
 import pylab as pl
 
 datadir = "/home/martineau/GRAND/GRANDproto35/data/tests/"
+
 def loopEvents(filename):
+
    datafile = datadir+filename
    print 'Scanning',datafile
 
@@ -26,72 +29,82 @@ def loopEvents(filename):
    TrigPattern = np.zeros(shape=(np.size(evts)))
    trigtime = np.zeros(shape=(np.size(evts)))
    data = list()
-   #maxCoarse = [124997981, 124997993]  # Read from S299_bxx.data
-   maxCoarse = [124997955.469, 124998238.4] # Read from S22_bxx.data
    j = 0
    for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty)
    #for i in range(1001,2001):  # Skip first elemt which is empty
-   	   if float(i)/100 == int(i/100):
-	   	print 'Event ',i
-   	   evt = evts[i]
-   	   evtsplit = evt.split('\n')
+     if float(i)/100 == int(i/100):
+     	  print 'Event ',i
+ 
+     evt = evts[i]
+     evtsplit = evt.split('\n')
+     if np.size(evtsplit)>8:   # Event is of normal size
+       #date.append(evtsplit[1])
+       d = mx.DateTime.DateTimeFrom(evtsplit[1])  # Better parser than standatetime module
+       date.append(d)
+       IP = evtsplit[2][3:]
+       if IP=='192.168.1.101':
+         board[j] = 01
+       if IP=='192.168.1.102':
+         board[j] = 02
 
-   	   if np.size(evtsplit)>8:   # Event is of normal size
-   		   date.append(evtsplit[1])
-		   IP = evtsplit[2][3:]
-		   if IP=='192.168.1.101':
-		   	board[j] = 01;
-		   if IP=='192.168.1.102':
-		   	board[j] = 02;
+       TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> ounter)
+       tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
+       TS1Trig[j] = get_1stone(hex(tt))
+       tpps=int(evtsplit[5][7:])
+       TS1PPS[j]=get_1stone(hex(tpps))  # phase in 8ns slot for PPS
+       SSS[j]=int(evtsplit[6][4:])  # Elapsed seconds since start
+       EvtId[j] = int(evtsplit[7][3:])
+       TrigPattern[j] = int(evtsplit[8][12:])
+       # Data
+       raw=evtsplit[9:][:]  #raw data
+       raw2 = raw[0].split(" ") # Cut raw data list into samples
+       raw2 = raw2[0:np.size(raw2)-1]	# Remove last element (empty)
+       hraw2 = [hex(int(a)) for a in raw2]  # TRansfer back to hexadecimal
+       draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements
 
-   		   TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> 8ns counter)
-   		   tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
-   		   TS1Trig[j] = get_1stone(hex(tt))
-		   tpps=int(evtsplit[5][7:])
-		   TS1PPS[j]=get_1stone(hex(tpps))  # phase in 8ns slot for PPS
-   		   SSS[j]=int(evtsplit[6][4:])  # Elapsed seconds since start
-   		   EvtId[j] = int(evtsplit[7][3:])
-   		   TrigPattern[j] = int(evtsplit[8][12:])
-   		   # Data
-   		   raw=evtsplit[9:][:]  #raw data
-   		   raw2 = raw[0].split(" ") # Cut raw data list into samples
-		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
-		   hraw2 = [hex(int(a)) for a in raw2]  # TRansfer back to hexadecimal
-   		   draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements
+       nsamples = len(draw)/4  # Separate data to each channel
+       offset = nsamples/2.0
+       #print nsamples,"samples per channel --> offset = ",offset
+       data.append(np.reshape(draw,(4,nsamples))) # Write to data list
+     else:
+       print 'Error! Empty event',i
+       date.append("")
+       data.append("")
 
-   		   nsamples = len(draw)/4  # Separate data to each channel
-   		   offset = nsamples/2.0
-   		   #print nsamples,"samples per channel --> offset = ",offset
-   		   data.append(np.reshape(draw,(4,nsamples))) # Write to data list
-   	   else:
-   		   print 'Error! Empty event',i
-   		   date.append("")
-   		   data.append("")
-
-	   j = j+1
+     j = j+1
 
    # Build trig time
+   date = np.array(date)
    boards = set(board[np.where(board>0)])
-   print 'Run start:', date[0]
    print 'Boards in run:',list(boards)
-   j = 0
+   print 'Run start:', date[0]
+   
    sel1 = np.where(board == list(boards)[0])  # Use same PPS second for all cards
    for id in boards:
      sel = np.where(board == id)
      date_end = date[sel[0][-1]-1]
-
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
-     pl.figure(12)
-     pl.hist(TS2[sel])
-     pl.xlabel("Distrib of TS2 (8ns step counter)")
+     #pl.figure(12)
+     #pl.hist(TS2[sel])
+     #pl.xlabel("Distrib of TS2 (8ns step counter)")
 
-     # Ratio of expected nb of counts in 1s to actually measured  => correction to clock
+
+     # Grab MaxCoarse info from SLC run.
+     if id == 1:
+       [d,maxCoarseRaw] = getMaxCoarse("S22_b01.data")
+     if id == 2:
+       [d,maxCoarseRaw] = getMaxCoarse("S22_b02.data")
+     d = np.array(d)
+     maxCoarse = np.zeros(np.shape(sel))
+     for k in range(np.size(sel)):
+     	idift = np.argmin(np.abs(date[k]-d))
+	maxCoarse[0,k] = maxCoarseRaw[idift]
+	
+     # Now compute trig time
      #cor=1
      #cor=125e6/float(max(TS2[sel]))
-     cor=125e6/float(maxCoarse[int(id)-1]+1)
-     print max(TS2[sel]), maxCoarse[int(id)-1]
+     cor=125e6/(maxCoarse+1)
      print 'Correction factor for 125MHz clock for board',id,':',cor
-     # Build trig time
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
      if id == 1:
        newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
@@ -166,6 +179,26 @@ def loopEvents(filename):
    pl.xlabel('Consecutive Delta Trigtime [ms]')
    pl.show()
 
+
+def getMaxCoarse(filename):
+# retrieve maxCoarse info from bslow control data
+    datafile = datadir+filename
+    print 'Scanning',datafile
+
+    with open(datafile,"r") as f:
+    	   evts = f.read().split('-----------------')
+
+    nevts=len(evts)-1  # All messages in SLC.txt file
+    date = []
+    maxCoarse = []
+    for i in range(nevts):
+       evt = evts[i]
+       if len(evt)>60:  #59 is ACK size
+            evtsplit = evt.split('\n')
+            d = mx.DateTime.DateTimeFrom(evtsplit[1])  # Better parser than standard datetime module
+            date.append(d)
+            maxCoarse.append(evtsplit[20].split(':')[1])
+    return date,maxCoarse
 
 
 def get_1stone(val):

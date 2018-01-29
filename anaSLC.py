@@ -1,8 +1,9 @@
 import os
 import time
+import datetime
+import mx.DateTime
 import sys
 import math
-
 import numpy as np
 import pylab as pl
 
@@ -51,6 +52,11 @@ def loop(filename):
 	   maxCoarse[j] = evtsplit[20].split(':')[1]
 
            j = j+1
+   nevts = j
+   date = np.array(date)
+   #d = mx.DateTime.DateTimeFrom(date[0])  # Better parser than standard datetime module
+   #d2 = mx.DateTime.DateTimeFrom(date[10])
+   #print d.gmtime(),d2.gmtime(),d2-d
 
    hraw = [hex(int(a)) for a in Temp]  # Transfer back to hexadecimal
    braw = [bin(int(a)) for a in Temp]
