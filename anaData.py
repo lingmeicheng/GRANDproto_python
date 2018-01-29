@@ -6,11 +6,11 @@ import math
 
 import numpy as np
 import pylab as pl
-#from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit
 
-def loopEvents(RUNID,TYPE):
+def loopEvents(RUNID,TYPE,folder,BOARDID):
    pl.ion()
-   DISPLAY = 1
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -21,16 +21,20 @@ def loopEvents(RUNID,TYPE):
    pl.ion()
    if TYPE == "0":
      datafile = '../data/P'+str(RUNID)+'_b01.data'  #Pattern
+     pre = 'P'
    if TYPE == "1":
      datafile = '../data/C'+str(RUNID)+'_b01.data'   #Calib
+     pre = 'C'
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b02.data'  #Normal
+     datafile = '../data/R'+str(RUNID)+'_b03.data'  #Normal
+     pre = 'R'
    if TYPE == "3":
-     datafile = '../data/M'+str(RUNID)+'_b01.data'  #MinBias
+     datafile = '../data/M'+str(RUNID)+'_b35.data'  #MinBias
+     pre = 'M'
    #datafile = '../data/data1kHz_2.txt'
    #datafile = '../data/gen400kHz.txt'
    #datafile = '../data/data6.txt'
-   #datafile = '../data/10122016/data_night.txt'
+   datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data'  # Bootstrap for prod tests
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -139,19 +143,19 @@ def loopEvents(RUNID,TYPE):
  		       w = 2*np.pi*66.666666  #rad/mus
 		       yr = thisEvent[3][3:]
 		       fitfunc = lambda xr, a, b, c: a*np.sin(w*xr+b)+c   # Create fit function
-		       abeg = float(np.max(yr)-np.min(yr))/2.
+		       abeg = float(np.max(yr)-np.min(yr))
 		       p, pcov = curve_fit(fitfunc,xr,yr,p0 = [abeg,0.0,0.0])  #Perform fit
  		       print 'Fit results:',p,np.sqrt(np.diag(pcov))
 		       xf=np.linspace(xr[0],xr[-1],10000)  # Display fit result wuith nice thinning
 		       pl.plot(xf,fitfunc(xf,p[0],p[1],p[2]))
 		     
-		     mamp = [0,0,0]
-		     for ch in range(3):
-		       mamp[ch] = np.max(thisEvent[ch][3:])-np.min(thisEvent[ch][3:])
-		     print np.max(mamp)
-		     if np.max(mamp)>1:
-		       pl.show()
-		       raw_input()
+		     #mamp = [0,0,0]
+		     #for ch in range(3):
+		     #  mamp[ch] = np.max(thisEvent[ch][3:])-np.min(thisEvent[ch][3:])
+		     #print np.max(mamp)
+		     #if np.max(mamp)>1:
+		     pl.show()
+		     raw_input()
  		     pl.close(j)
 		   
 		   for k in range(nch):
@@ -204,7 +208,7 @@ def loopEvents(RUNID,TYPE):
      trigtime[sel] = SSS[sel]+(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #second. 
      
      deltat[sel] = np.diff(trigtime[sel])
-     # Compute trig rate
+     # Compute trig rate/home/lpnhe/GRANDproto/tests/board03/171026_1400
      for i in range(dur):
 	ts = tdeb+i
 	#print i,j,np.size(np.where(SSS[sel]==ts))
@@ -226,6 +230,7 @@ def loopEvents(RUNID,TYPE):
      pl.title('Data rate')    
      
      for k in range(nch):
+      if 1:
        good = np.where( (imax[sel,k][0]>104) & (imax[sel,k][0]<108))
        abline = np.where( (Amax[sel,k][0]<0))
        azero = np.where( (Amax[sel,k][0]==0))
@@ -278,6 +283,7 @@ def loopEvents(RUNID,TYPE):
        pl.ylabel('Bline std dev')
        pl.title('Board {0}'.format(id))
        pl.grid(True)
+       
      j = j+1
 
    
@@ -347,5 +353,4 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     print sys.argv
-     loopEvents(sys.argv[1],sys.argv[2])
+     loopEvents(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])

@@ -30,10 +30,12 @@ def loopEvents(filename):
    trigtime = np.zeros(shape=(np.size(evts)))
    data = list()
    j = 0
+
    for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty)
    #for i in range(1001,2001):  # Skip first elemt which is empty
      if float(i)/100 == int(i/100):
      	  print 'Event ',i
+
  
      evt = evts[i]
      evtsplit = evt.split('\n')
@@ -106,6 +108,7 @@ def loopEvents(filename):
      cor=125e6/(maxCoarse+1)
      print 'Correction factor for 125MHz clock for board',id,':',cor
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
+     
      if id == 1:
        newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
      if id == 2:
@@ -145,9 +148,9 @@ def loopEvents(filename):
 
    pl.figure(21)
    pl.subplot(311)
-   pl.plot(trigtime1[sel],tdiff[sel])
+   pl.plot(trigtime1,tdiff)
    pl.plot(trigtime1[newS1],dPPS,marker="o")
-   pl.xlabel('Time [ns]')
+   pl.xlabel('Time [s]')
    pl.ylabel('trigtime_b2-trigtime_b1 [ns]')
    pl.grid(True)
    pl.xlim(min(trigtime1),max(trigtime1))
