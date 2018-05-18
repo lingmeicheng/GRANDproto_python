@@ -8,9 +8,6 @@ import numpy as np
 import pylab as pl
 from scipy.optimize import curve_fit
 
-# Local module. Do ./setup.py build & ./setup.py install if not loadable [Junhua Sept 27 2017]
-import pyef
-
 def loopEvents(RUNID,TYPE,folder,BOARDID):
    pl.ion()
    DISPLAY = 1
@@ -23,23 +20,23 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
    
    pl.ion()
    if TYPE == "0":
-     datafile = '../data/P'+str(RUNID)+'_b01.data.bin'  #Pattern
+     datafile = '../data/P'+str(RUNID)+'_b01.data.txt'  #Pattern
      pre = 'P'
    if TYPE == "1":
-     datafile = '../data/C'+str(RUNID)+'_b01.data.bin'   #Calib
+     datafile = '../data/C'+str(RUNID)+'_b01.data.txt'   #Calib
      pre = 'C'
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b03.data.bin'  #Normal
+     datafile = '../data/R'+str(RUNID)+'_b03.data.txt'  #Normal
      pre = 'R'
    if TYPE == "3":
-     datafile = '../data/M'+str(RUNID)+'_b35.data.bin'  #MinBias
+     datafile = '../data/M'+str(RUNID)+'_b35.data.txt'  #MinBias
      pre = 'M'
    #datafile = '../data/data1kHz_2.txt'
    #datafile = '../data/gen400kHz.txt'
    #datafile = '../data/data6.txt'
    datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data.txt'  # Bootstrap for prod tests
    print 'Scanning',datafile
-   
+
    with open(datafile,"r") as f:
    	   evts = f.read().split('-----------------')
 

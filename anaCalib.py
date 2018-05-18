@@ -14,7 +14,7 @@ def loopEvents(RUNID,att):
    if ext:
      filename = "sinCh1b1_"+att1+"dB.txt"
    else:
-     filename = "C"+RUNID+"_b01.data"
+     filename = "C"+RUNID+"_b01.data.txt"
    #datafile = '/root/GRANDproto/data/'+filename
    datafile = '../data/'+filename
    print 'Scanning',datafile

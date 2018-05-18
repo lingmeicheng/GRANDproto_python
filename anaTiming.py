@@ -7,11 +7,15 @@ import math
 import numpy as np
 import pylab as pl
 
-datadir = "/home/martineau/GRAND/GRANDproto35/data/tests/"
+# Local module. Do ./setup.py build & ./setup.py install if not loadable [Junhua Sept 27 2017]
+import pyef 
 
-def loopEvents(filename):
+datadir = "/home-local/GRANDproto/GRANDproto/data"
 
-   datafile = datadir+filename
+def loopEvents(RUNID,ID1,ID2):
+   filename = 'R'+str(RUNID)+'_b'+str(ID2)+'.data.txt'
+   
+   datafile = datadir+'/'+filename
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -31,8 +35,8 @@ def loopEvents(filename):
    data = list()
    j = 0
 
-   for i in range(1001,np.size(evts)):  # Skip at least first elemt (empty)
-   #for i in range(1001,2001):  # Skip first elemt which is empty
+   #for i in range(101,np.size(evts)):  # Skip at least first elemt (empty)
+   for i in range(1,1001):  # Skip first elemt which is empty
      if float(i)/100 == int(i/100):
      	  print 'Event ',i
 
@@ -44,12 +48,20 @@ def loopEvents(filename):
        d = mx.DateTime.DateTimeFrom(evtsplit[1])  # Better parser than standatetime module
        date.append(d)
        IP = evtsplit[2][3:]
-       if IP=='192.168.1.101':
+       if IP=='192.168.1.1'+str(ID1):
          board[j] = 01
-       if IP=='192.168.1.102':
+       if IP=='192.168.1.1'+str(ID2):
          board[j] = 02
-
+       if j>0 and board[j]==board[j-1]:
+          print "## Error! 2 consecutive events from same board... Skip"
+	  continue
+	    
        TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> ounter)
+       #print j%2,": board",int(board[j]),"IP=",IP,"TS2=",TS2[j]
+       if j%2==1 and abs(TS2[j]-TS2[j-1])>1000:
+          print "## Error! Mismtach in TS2 timings...",TS2[j-1],TS2[j],". Deleting this pair."
+	  j = j-1
+	  continue
        tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
        TS1Trig[j] = get_1stone(hex(tt))
        tpps=int(evtsplit[5][7:])
@@ -81,7 +93,7 @@ def loopEvents(filename):
    print 'Boards in run:',list(boards)
    print 'Run start:', date[0]
    
-   sel1 = np.where(board == list(boards)[0])  # Use same PPS second for all cards
+   sel1 = np.where(board == list(boards)[0])  # Compute time with same PPS second for all cards
    for id in boards:
      sel = np.where(board == id)
      date_end = date[sel[0][-1]-1]
@@ -93,20 +105,37 @@ def loopEvents(filename):
 
      # Grab MaxCoarse info from SLC run.
      if id == 1:
-       [d,maxCoarseRaw] = getMaxCoarse("S22_b01.data")
+       [d,maxCoarseRaw] = getMaxCoarse('S'+str(RUNID)+'_b'+str(ID1)+'.data.txt')
+       #[d,maxCoarseRaw] = getMaxCoarse('S1110_b'+str(ID1)+'.data.txt')
      if id == 2:
-       [d,maxCoarseRaw] = getMaxCoarse("S22_b02.data")
+       [d,maxCoarseRaw] = getMaxCoarse('S'+str(RUNID)+'_b'+str(ID2)+'.data.txt')
+       #[d,maxCoarseRaw] = getMaxCoarse('S1110_b'+str(ID2)+'.data.txt')
      d = np.array(d)
      maxCoarse = np.zeros(np.shape(sel))
-     for k in range(np.size(sel)):
+     for k in range(np.size(sel)): 
      	idift = np.argmin(np.abs(date[k]-d))
 	maxCoarse[0,k] = maxCoarseRaw[idift]
-	
+	print d
+	print date[k],idift,maxCoarseRaw[idift]
+	raw_input()
+     #maxCoarse = np.transpose(maxCoarse)
+     print maxCoarse[0,:]
+     print np.mean(maxCoarse[0,:])
+     
+     sel2 = np.where(np.abs(maxCoarse[0,:]-np.mean(maxCoarse[0,:]))<1e6)
+     print np.shape(maxCoarse)
+     print len(sel2)
+     print sel2
+     pl.figure(17)
+     pid = 210+id
+     pl.subplot(int(pid))
+     pl.plot(maxCoarse[0,sel2],'+k')
+     	
      # Now compute trig time
-     #cor=1
+     cor=1
      #cor=125e6/float(max(TS2[sel]))
      cor=125e6/(maxCoarse+1)
-     print 'Correction factor for 125MHz clock for board',id,':',cor
+     #print 'Correction factor for 125MHz clock for board',id,':',cor
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
      
      if id == 1:
@@ -185,9 +214,12 @@ def loopEvents(filename):
 
 def getMaxCoarse(filename):
 # retrieve maxCoarse info from bslow control data
-    datafile = datadir+filename
+    datafile = datadir+'/'+filename
     print 'Scanning',datafile
-
+    
+    #ef=pyef.read_event_file(datafile)
+    #pyef.print_event_file(ef)
+    
     with open(datafile,"r") as f:
     	   evts = f.read().split('-----------------')
 
@@ -233,4 +265,4 @@ def twos_comp(val, bits):
 
 
 if __name__ == '__main__':
-     loopEvents(sys.argv[1])
+     loopEvents(sys.argv[1],sys.argv[2],sys.argv[3])

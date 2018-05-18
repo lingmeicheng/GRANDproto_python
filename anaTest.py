@@ -23,7 +23,7 @@ def loopEvents(RUNID,folder,BOARDID,TYPE):
    else:
      print 'Wrong TYPE!'
      
-   datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data'  
+   datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data.txt'  
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:

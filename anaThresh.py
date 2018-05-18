@@ -42,7 +42,7 @@ if TYPE=='n':
   ax.set_ylabel('Trig rate (Hz)')
   ax.set_ylim([0.05,np.max(y)*1.1])
 if TYPE=='s':
-  ax.set_title('Trigger board {0} - Input = Sin 66MHz 400mVpp-30dB-splitter'.format(boardid))
+  ax.set_title('Trigger board {0} - Input = Square 400mVpp-30dB-splitter'.format(boardid))
   ax.set_ylabel('$N_{Trig}/N_{Signal}$')
 
 ax.set_xlabel('Threshold (mV)')
