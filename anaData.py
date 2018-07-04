@@ -9,11 +9,11 @@ import pylab as pl
 from scipy.optimize import curve_fit
 
 # Local module. Do ./setup.py build & ./setup.py install if not loadable [Junhua Sept 27 2017]
-import pyef
+#import pyef
 
-def loopEvents(RUNID,TYPE,folder,BOARDID):
+def loopEvents(RUNID,BOARDID,TYPE):
    pl.ion()
-   DISPLAY = 1
+   DISPLAY = 0
    if int(TYPE)<2:
      nch = 4   #Nb of channels
    else:
@@ -23,20 +23,15 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
    
    pl.ion()
    if TYPE == "0":
-     datafile = '../data/P'+str(RUNID)+'_b01.data.bin'  #Pattern
      pre = 'P'
    if TYPE == "1":
-     datafile = '../data/C'+str(RUNID)+'_b01.data.bin'   #Calib
      pre = 'C'
    if TYPE == "2":
-     datafile = '../data/R'+str(RUNID)+'_b03.data.bin'  #Normal
      pre = 'R'
    if TYPE == "3":
-     datafile = '../data/M'+str(RUNID)+'_b35.data.bin'  #MinBias
      pre = 'M'
-   #datafile = '../data/data1kHz_2.txt'
-   #datafile = '../data/gen400kHz.txt'
-   #datafile = '../data/data6.txt'
+   
+   folder =  '../data/'
    datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data.txt'  # Bootstrap for prod tests
    print 'Scanning',datafile
    
@@ -89,12 +84,15 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
    		   raw=evtsplit[9:][:]  #raw data
    		   raw2 = raw[0].split(" ") # Cut raw data list into samples
 		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
+		   print TYPE
    		   if TYPE == "0":
 			draw = [int(a) for a in raw2] 
 		   else:
   		        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
 			draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
-                   draw = np.array(draw)*1./2048  # in Volts
+                   if int(TYPE)>0:
+		     print "coco"
+		     draw = np.array(draw)*1./2048  # in Volts
 		   
    		   nsamples = len(draw)/4  # Separate data to each channel
    		   offset = nsamples/2.0
@@ -116,7 +114,10 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
  		     pl.plot(t[3:],thisEvent[0][3:])
  		     pl.xlim(t[3],max(t))
  		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     if TYPE == "0":
+		       pl.ylabel('LSB')
+		     else:
+		       pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
 		     if TYPE == "1":
    		       pl.subplot(222)
@@ -124,8 +125,11 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
 		       pl.subplot(312)
  		     pl.xlabel('Time [mus]')
  		     pl.xlim(t[3],max(t))
- 		     pl.ylabel('Amplitude [V]')
- 		     pl.plot(t[3:],thisEvent[1][3:])
+ 		     if TYPE == "0":
+		       pl.ylabel('LSB')
+		     else:
+		       pl.ylabel('Amplitude [V]')
+		     pl.plot(t[3:],thisEvent[1][3:])
  		     pl.grid(True)
 		     if TYPE == "1":
    		       pl.subplot(223)
@@ -134,7 +138,10 @@ def loopEvents(RUNID,TYPE,folder,BOARDID):
  		     pl.plot(t[3:],thisEvent[2][3:])
                      pl.xlim(t[3],max(t))
  		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     if TYPE == "0":
+		       pl.ylabel('LSB')
+		     else:
+		       pl.ylabel('Amplitude [V]')
  		     pl.grid(True)
 		     if TYPE == "1":
  		       pl.subplot(224)
@@ -362,4 +369,7 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     loopEvents(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])
+     if len(sys.argv)!=4:
+       print "Usage: >loopEvents RUNID BOARDID TYPE"
+       
+     loopEvents(sys.argv[1],sys.argv[2],sys.argv[3])

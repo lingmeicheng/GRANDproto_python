@@ -6,16 +6,11 @@ import math
 import numpy as np
 import pylab as pl
 
-def loopEvents(RUNID,att):
-   ext = 0	 
+def loopEvents(RUNID,boardID,att):
    DISPLAY = 0
    print 'DISPLAY = ',DISPLAY 
    pl.ion()
-   if ext:
-     filename = "sinCh1b1_"+att1+"dB.txt"
-   else:
-     filename = "C"+RUNID+"_b01.data.txt"
-   #datafile = '/root/GRANDproto/data/'+filename
+   filename = "C"+RUNID+"_b"+boardID+".data.txt"
    datafile = '../data/'+filename
    print 'Scanning',datafile
 
@@ -39,8 +34,6 @@ def loopEvents(RUNID,att):
    mub = np.zeros(shape=(nevts,3))
    sigb = np.zeros(shape=(nevts,3))
    
-   #data = list()
-
    j = 0;  # Index of array filling (because date & data are "append")
    for i in range(1,nevts+1):  
    	   if float(i)/100 == int(i/100):
@@ -148,7 +141,7 @@ def loopEvents(RUNID,att):
    return {'m':m, 'em':em}
      
 
-def anaRuns(runstart,runstop):   # Analyse runs and write result to file
+def anaRuns(boardID,runstart,runstop):   # Analyse runs and write result to file
   runs=range(runstart,runstop)  
   
   att = np.zeros(np.shape(runs))
@@ -158,8 +151,7 @@ def anaRuns(runstart,runstop):   # Analyse runs and write result to file
   for i in range(np.size(runs)):  #loop on runs
     runid = runs[i]
     # Grab attenuation values from config file
-    file = open("../data/C"+str(runid)+"_b01.cfg", "r")
-    #file = open("/root/GRANDproto/data/C"+str(runid)+"_b18.cfg", "r")
+    file = open("../data/C"+str(runid)+"_b"+boardID+".cfg", "r")
     for line in file:
       if re.search("Attr1", line):
     	 att1 = int(line.split()[2])
@@ -169,21 +161,21 @@ def anaRuns(runstart,runstop):   # Analyse runs and write result to file
     print att1,att2,att[i]
     print att
     
-    res = loopEvents(str(runid),str(att[i]))      
+    res = loopEvents(str(runid),boardID,str(att[i]))      
     mm[i,:]=list(res['m'][0])
     emm[i,:]=list(res['em'][0])
 
   # Write to file
   conc = np.r_[att,mm[:,0],emm[:,0],mm[:,1],emm[:,1],mm[:,2],emm[:,2]]   # Concatenate results
   conc = conc.reshape(7,np.size(att)) # Reshape in line = Att, Measure_Ch[i], Error_Ch[i]
-  filename = 'caliboutput_R{0}R{1}.txt'.format(runstart,runstop)
+  filename = 'caliboutput_b{0}_R{1}R{2}.txt'.format(boardID,runstart,runstop)
   np.savetxt(filename,conc)  # Write to file
 
     
-def anaRes(runstart,runstop):    
+def anaRes(boardID,runstart,runstop):    
     
   # Read file
-  a = np.loadtxt('caliboutput_R{0}R{1}.txt'.format(runstart,runstop))
+  a = np.loadtxt('caliboutput_b{0}_R{1}R{2}.txt'.format(boardID,runstart,runstop))
   att = a[0,:]
   mm = np.empty([len(att),3])
   emm = np.empty([len(att),3])
@@ -193,12 +185,9 @@ def anaRes(runstart,runstop):
   
   sel = np.where((att>100) & (att<200))  #Fit range
   a = 0.25
-  b = -63.5-9  #2*4.5dB attenuator insertion loss
-  attdB = att*a+b  # att = 0dB for att=127 on both attenuators
-  vin = 0.325/2*pow(10,attdB/20) # [V] 
-  # V = 0.325Vpp  @ attenuator input (V = 0.262Vpp @ Ch4 ADC because of impedance!=50 ohm))
-  # Then 10^(-attdB/20) attenuation & factor 1/2 because of 3 channels split 
-  
+  b = -63.5-7  #2*3.3dB attenuator insertion loss
+  attdB = att*a+b  # ideal: att = 0dB for att=127 on both attenuators 
+  vin = 0.262/2*pow(10,attdB/20) # 10^(attdB/20) attenuation & factor 1/2 because of 3 channels split 
   fig = pl.figure(11)
   for k in range(3):
     pl.subplot(2,1,1)
@@ -213,35 +202,53 @@ def anaRes(runstart,runstop):
   pl.grid(True)
   pl.xlabel('$\Sigma$attenuation indexes')
   pl.ylabel('Mean output level [V]')
-  pl.legend(loc='upper left')
+  pl.legend(loc='best')
   pl.subplot(2,1,2)
   pl.grid(True)
   pl.xlabel('$\Sigma$attenuation indexes')
   pl.ylabel('StdDev [V]')
-  pl.legend(loc='lower left')
-  
- 
-  fig = pl.figure(12)
+  pl.legend(loc='best')
+
+  # Now load external calib data Inout = 66MHz+100mV sine wave + att = 30dB + splitter
+  f = np.loadtxt('calibExt.txt')
+  runex = f[:,0]
+  boardex = f[:,1]
+  selex = np.where(boardex==int(boardID))[0]
+  Vinex = f[selex,2]*0.001  # mV==>V
+  Vindaq = Vinex*pow(10,-30./20)*0.5  # Now apply attenuation (attenuator+splitter)
+    
+  mex = np.empty([len(selex),3])
+  emex = np.empty([len(selex),3])
+  for k in range(3):
+    mex[:,k] = f[selex,3+2*k]
+    emex[:,k] = f[selex,3+2*k+1]
   for k in range(3):
     z = np.polyfit(attdB[sel],mm[sel,k][0],1)  # Linear fit
     yth = attdB*z[0]+z[1]
-    pl.subplot(2,1,1)
-    pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
+    #pl.subplot(2,1,1)
+    fig = pl.figure(12)
+    pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
     pl.plot(attdB,yth,'y--')
     print 'Channel',k,', slope=',z[0],'V/dB'
-    pl.subplot(2,1,2)
-    pl.errorbar(vin,mm[:,k],yerr=emm[:,k],label='Channel {0}'.format(k))
-  pl.subplot(2,1,1)
-  pl.grid(True)
+    fig3 = pl.figure(13)
+    sind = k+1
+    sbp2 = pl.subplot(3,1,sind)
+    sbp2.set_xscale('log')
+    pl.errorbar(vin,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
+    pl.errorbar(Vindaq,mex[:,k],yerr=emex[:,k],lw=2,label='ExtSin - Channel {0}'.format(k))  
+    pl.grid(True)
+    if k==2: 
+      pl.xlabel('Signal amplitude @ channel input [Vpp]')
+    pl.ylabel('Mean output level [V]')
+    pl.legend(loc='best')
+  
+  pl.figure(12)
+  pl.title('Board {0} R{1}-{2}'.format(boardID,runstart,runstop))
   pl.xlabel('Quartz signal attenuation [dB]')
   pl.ylabel('Mean output level [V]')
-  pl.legend(loc='upper left')
-  sbp2 = pl.subplot(2,1,2)
-  sbp2.set_xscale('log')
-  pl.grid(True)
-  pl.xlabel('Signal amplitude @ channel input [Vpp]')
-  pl.ylabel('Mean output level [V]')
-  pl.legend(loc='upper left')
+  pl.legend(loc='best')
+  pl.figure(12)
+  pl.title('Board {0} R{1}-{2}'.format(boardID,runstart,runstop))
   
   
    
@@ -272,8 +279,14 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
   
-  #runs=range(740,752)  # board 1 - Sep 2017 - channel 02 bad
-  runs=range(801,814)  # board 1 - Oct 2017 - channel 02 now good!
-  #anaRuns(runs[0],runs[-1])
-  anaRes(runs[0],runs[-1])
+  if sys.argv[1] == "26":
+    #runs=range(394,407)  # board 26 02/07/2018
+    runs=range(470,496)  # board 12 02/07/2018
+    
+  if sys.argv[1] == "12":
+    #runs=range(407,419)  # board 12 02/07/2018
+    runs=range(444,470)  # board 12 02/07/2018
+    
+  #anaRuns(sys.argv[1],runs[0],runs[-1])
+  anaRes(sys.argv[1],runs[0],runs[-1])
 
