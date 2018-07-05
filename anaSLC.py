@@ -7,7 +7,7 @@ import math
 import numpy as np
 import pylab as pl
 
-datadir = "/home/martineau/GRAND/GRANDproto35/data/tests/"
+datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
 
 def loop(filename):
    datafile = datadir+filename
@@ -103,12 +103,13 @@ def loop(filename):
    		pl.legend()
 		pl.title('Board '+str(id))
 
+	   thisMaxCoarse = maxCoarse[sel]
 	   pl.figure(4)  #MaxCoarse
 	   pl.subplot(211)
-	   pl.plot(maxCoarse[sel])
+	   pl.plot(thisMaxCoarse[thisMaxCoarse>0])
 	   pl.subplot(212)
-	   pl.hist(maxCoarse[sel])
-	   print 'maxCoarse counter = ',np.mean(maxCoarse[sel]),'+-',np.std(maxCoarse[sel]),' vs 1.25e+8'
+	   pl.hist(thisMaxCoarse[thisMaxCoarse>0])
+	   print 'maxCoarse counter = ',np.mean(thisMaxCoarse[thisMaxCoarse>0]),'+-',np.std(thisMaxCoarse[thisMaxCoarse>0]),' vs 1.25e+8'
 
    pl.draw()
    pl.show()

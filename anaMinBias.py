@@ -11,10 +11,9 @@ import matplotlib
 import pylab as pl
 
 
-def loopEvents(filename):
+def loopEvents(runID,boardID):
 
-   boardID = 18
-   timeslice = 600
+   timeslice = 60
    
    resfile = 'minBias.txt'
    reso = open(resfile,'ab')
@@ -24,7 +23,9 @@ def loopEvents(filename):
    else:
      tfmax = 0
    
-   datafile = '../data/'+filename
+   folder = '/home/martineau/GRAND/GRANDproto35/data/ulastai/'
+   filename = 'M'+runID+'_b'+boardID+'.data.txt'
+   datafile = folder+filename
    print 'Scanning minBias datafile',datafile
    with open(datafile,"r") as f:
    	   evts = f.read().split('-----------------')
@@ -48,17 +49,20 @@ def loopEvents(filename):
 		   
 		   IP = evtsplit[2][3:]
 		   board = int(IP[-2:]);
-		   if board != boardID:
-		     print 'Board {0}, skip it (analysing board {1} only'.format(board,boardID)
+		   if board != int(boardID):
+		     print 'Board {0}, skip it (analysing board {1} only)'.format(board,boardID)
 		     continue
 		   
 		   date = evtsplit[1]
 		   a = evtsplit[1].split()
       		   year = int(a[4])
-      		   if a[1]=='May':
+		   if a[1]=='May':
 		     month = 5
 		   elif  a[1]=='June':   
 		     month = 6
+		   elif  a[1]=='Jul':   
+		     month = 7
+		     
       		   day = int(a[2])
       		   h = int(a[3].split(':')[0])
       		   mn = int(a[3].split(':')[1])
@@ -68,7 +72,7 @@ def loopEvents(filename):
       		   d = datetime.datetime(year,month,day,h,mn,s)
       		   sec = time.mktime(d.timetuple())
 		   if sec<=tfmax:
-		     #print 'Date already in {0}, skip data.'.format(resfile)
+		     print 'Date already in {0}, skip data.'.format(resfile)
 		     continue
 		
 		   # Now only fresh data on valid board
@@ -129,7 +133,7 @@ def loopEvents(filename):
 	 #print ulastai.date,ephem.hours(lst[j])
 
 	 
-	 if 0:  #DISPLAY
+	 if 1:  #DISPLAY
  	   pl.figure(1)
  	   pl.subplot(311)
  	   pl.plot(comEventX)
@@ -137,18 +141,21 @@ def loopEvents(filename):
  	   pl.plot(comEventY)
  	   pl.subplot(313)
  	   pl.plot(comEventZ)
- 	   #pl.show()
+ 	   pl.show()
  	   raw_input()
  	   pl.close(1)
 	 
 	 istart = i  
 	 j = j+1
+	 
 	 comEventX = []
          comEventY = []
          comEventZ = []
 	 
        i = i+1;
-   
+   ulastai.date = datetime.datetime.fromtimestamp(unixsecs[istart])    
+   sig = np.append(sig,[unixsecs[-1],ulastai.sidereal_time(),np.mean(comEventX), np.mean(comEventY), np.mean(comEventZ)])	 
+
    # End of loop on all data. Now write to file.
    sig = sig.reshape(np.size(sig)/5,5)
    np.savetxt(reso, sig)
@@ -168,7 +175,7 @@ def displayGalVar():
    x = a[:,2]*adcF
    y = a[:,3]*adcF
    z = a[:,4]*adcF
-   sel = np.where(t<1496000000)
+   sel = np.where(t<14960000000)
    t = t[sel]
    lst = lst[sel]
    x = x[sel]
@@ -237,7 +244,7 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     #loopEvents(sys.argv[1])
+     #loopEvents(sys.argv[1],sys.argv[2])
      displayGalVar()
      pl.ion()
      

@@ -10,7 +10,8 @@ import pylab as pl
 # Local module. Do ./setup.py build & ./setup.py install if not loadable [Junhua Sept 27 2017]
 import pyef 
 
-datadir = "/home-local/GRANDproto/GRANDproto/data"
+#datadir = "/home-local/GRANDproto/GRANDproto/data"
+datadir = "/home/martineau/GRAND/GRANDproto35/data"
 
 def loopEvents(RUNID,ID1,ID2):
    filename = 'R'+str(RUNID)+'_b'+str(ID2)+'.data.txt'
@@ -21,24 +22,37 @@ def loopEvents(RUNID,ID1,ID2):
    with open(datafile,"r") as f:
    	   evts = f.read().split('-----------------')
 
+   
+   #########################################
+   ### Set nb of events
+   #########################################
+   minN = 1000
+   maxN = 80000
+   #maxN = np.size(evts)
+   if (maxN-minN)%2 == 1: 
+     print "Warning... Odd number of events. Cutting last one to build pairs."
+     maxN = maxN-1
+   dimarray = maxN-minN+1
+
    print 'Number of events:',len(evts)-1
    time.sleep(1)
    date = []
-   board = np.zeros(shape=(np.size(evts)))
-   TS2 = np.zeros(shape=(np.size(evts)))
-   TS1PPS = np.zeros(shape=(np.size(evts)))
-   TS1Trig = np.zeros(shape=(np.size(evts)))
-   SSS = np.zeros(shape=(np.size(evts)))
-   EvtId = np.zeros(shape=(np.size(evts)))
-   TrigPattern = np.zeros(shape=(np.size(evts)))
-   trigtime = np.zeros(shape=(np.size(evts)))
+   board = np.zeros(shape=(dimarray))
+   TS2 = np.zeros(shape=(dimarray))
+   TS1PPS = np.zeros(shape=(dimarray))
+   TS1Trig = np.zeros(shape=(dimarray))
+   SSS = np.zeros(shape=(dimarray))
+   EvtId = np.zeros(shape=(dimarray))
+   TrigPattern = np.zeros(shape=(dimarray))
+   trigtime = np.zeros(shape=(dimarray))
    data = list()
    j = 0
-
-   #for i in range(101,np.size(evts)):  # Skip at least first elemt (empty)
-   for i in range(1,1001):  # Skip first elemt which is empty
+         
+   for i in range(minN,maxN+1):  # Skip at least first elemt (empty)
+     
      if float(i)/100 == int(i/100):
      	  print 'Event ',i
+
 
  
      evt = evts[i]
@@ -53,15 +67,20 @@ def loopEvents(RUNID,ID1,ID2):
        if IP=='192.168.1.1'+str(ID2):
          board[j] = 02
        if j>0 and board[j]==board[j-1]:
-          print "## Error! 2 consecutive events from same board... Skip"
-	  continue
+	  print i,j,board[j-1],board[j],int(evtsplit[6][4:])
+	  print "## Error! 2 consecutive events from same board! Erase 1st one."
+          date.pop()
+	  j = j-1
+	  #raw_input()
+	  #continue
 	    
        TS2[j]=int(evtsplit[3][4:])  # time elapsed since last PPS (125MHz clock <=> ounter)
        #print j%2,": board",int(board[j]),"IP=",IP,"TS2=",TS2[j]
        if j%2==1 and abs(TS2[j]-TS2[j-1])>1000:
-          print "## Error! Mismtach in TS2 timings...",TS2[j-1],TS2[j],". Deleting this pair."
-	  j = j-1
-	  continue
+          print "## Error! Mismatch in TS2 timings...",TS2[j-1],TS2[j],". Deleting this pair."
+          j = j-1
+          continue
+	  
        tt=int(evtsplit[4][11:])  # phase in 8ns slot fr trigger
        TS1Trig[j] = get_1stone(hex(tt))
        tpps=int(evtsplit[5][7:])
@@ -86,7 +105,12 @@ def loopEvents(RUNID,ID1,ID2):
        data.append("")
 
      j = j+1
-
+   
+   if board[-1]==board[0]:
+     print "Skipping last (unpaired) event"
+     board = board[:-1]
+     
+   print board
    # Build trig time
    date = np.array(date)
    boards = set(board[np.where(board>0)])
@@ -110,44 +134,43 @@ def loopEvents(RUNID,ID1,ID2):
      if id == 2:
        [d,maxCoarseRaw] = getMaxCoarse('S'+str(RUNID)+'_b'+str(ID2)+'.data.txt')
        #[d,maxCoarseRaw] = getMaxCoarse('S1110_b'+str(ID2)+'.data.txt')
+     
      d = np.array(d)
-     maxCoarse = np.zeros(np.shape(sel))
-     for k in range(np.size(sel)): 
-     	idift = np.argmin(np.abs(date[k]-d))
-	maxCoarse[0,k] = maxCoarseRaw[idift]
-	print d
-	print date[k],idift,maxCoarseRaw[idift]
-	raw_input()
-     #maxCoarse = np.transpose(maxCoarse)
-     print maxCoarse[0,:]
-     print np.mean(maxCoarse[0,:])
-     
-     sel2 = np.where(np.abs(maxCoarse[0,:]-np.mean(maxCoarse[0,:]))<1e6)
-     print np.shape(maxCoarse)
-     print len(sel2)
-     print sel2
-     pl.figure(17)
-     pid = 210+id
-     pl.subplot(int(pid))
-     pl.plot(maxCoarse[0,sel2],'+k')
-     	
-     # Now compute trig time
-     cor=1
-     #cor=125e6/float(max(TS2[sel]))
-     cor=125e6/(maxCoarse+1)
+     if np.size(d)==1:
+        print "No maxCoarse data ==> no correction."
+        cor = 1
+     else:
+       maxCoarse = np.zeros(np.shape(sel))
+       for k in range(np.size(sel)): 
+     	 idift = np.argmin(np.abs(date[k]-d))
+	 maxCoarse[0,k] = maxCoarseRaw[idift]
+       cor=125e6/(maxCoarse+1)
+       #sel2 = np.where(np.abs(maxCoarse[0,:]-np.mean(maxCoarse[0,:]))<1e6)
+       #pl.figure(17)
+       #pid = 210+id
+       #pl.subplot(int(pid))
+       #pl.plot(maxCoarse[0,sel2],'+k')	
      #print 'Correction factor for 125MHz clock for board',id,':',cor
-     trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
      
+     #print id,np.shape(sel),np.shape(sel1)
+     trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
      if id == 1:
        newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
-     if id == 2:
-       newS2 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 2
+     
+     #if id == 2:
+     #  newS2 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 2
+     #  maxIndex = np.min([np.size(newS1),np.size(newS2)])
+     #  print maxIndex
+     #  newS1 = newS1[0:maxIndex]
+     #  newS2 = newS2[0:maxIndex]
+     #  print newS1
+     #  print newS2
 
    trigtime1 = trigtime[np.where(board == list(boards)[0])]
    trigtime2 = trigtime[np.where(board == list(boards)[1])]
    #TS21 = TS2[np.where(board == list(boards)[0])]  # This is the clock count for the 1st event in the new second
    tdiff = (trigtime2-trigtime1)*1e9  # Delta t in ns
-   dPPS = (trigtime2[newS2]-trigtime1[newS1])*1e9  # Delta t @ new PPS in ns
+   dPPS = (trigtime2[newS1]-trigtime1[newS1])*1e9  # Delta t @ new PPS in ns
 
    tdiff_b1 = np.zeros(shape=(np.size(trigtime1)))
    for i in range(len(trigtime1)-1):
@@ -220,9 +243,13 @@ def getMaxCoarse(filename):
     #ef=pyef.read_event_file(datafile)
     #pyef.print_event_file(ef)
     
-    with open(datafile,"r") as f:
+    try:
+      with open(datafile,"r") as f:
     	   evts = f.read().split('-----------------')
-
+    except: 
+      print "getMaxCoarse: error!!! Could not fond file",filename,". Return 0 instead."
+      return 0,0
+      
     nevts=len(evts)-1  # All messages in SLC.txt file
     date = []
     maxCoarse = []

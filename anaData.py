@@ -31,7 +31,8 @@ def loopEvents(RUNID,BOARDID,TYPE):
    if TYPE == "3":
      pre = 'M'
    
-   folder =  '../data/'
+   #folder =  '../data/'
+   folder =  '/home/martineau/GRAND/GRANDproto35/data/ulastai'
    datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data.txt'  # Bootstrap for prod tests
    print 'Scanning',datafile
    
@@ -84,14 +85,12 @@ def loopEvents(RUNID,BOARDID,TYPE):
    		   raw=evtsplit[9:][:]  #raw data
    		   raw2 = raw[0].split(" ") # Cut raw data list into samples
 		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
-		   print TYPE
    		   if TYPE == "0":
 			draw = [int(a) for a in raw2] 
 		   else:
   		        hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
 			draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements		   
                    if int(TYPE)>0:
-		     print "coco"
 		     draw = np.array(draw)*1./2048  # in Volts
 		   
    		   nsamples = len(draw)/4  # Separate data to each channel
