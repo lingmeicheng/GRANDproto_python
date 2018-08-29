@@ -11,7 +11,7 @@ import pylab as pl
 import pyef 
 
 #datadir = "/home-local/GRANDproto/GRANDproto/data"
-datadir = "/home/martineau/GRAND/GRANDproto35/data"
+datadir = "/home/martineau/GRAND/GRANDproto35/elec/tests/GPS/data"
 
 def loopEvents(RUNID,ID1,ID2):
    filename = 'R'+str(RUNID)+'_b'+str(ID2)+'.data.txt'
@@ -26,9 +26,9 @@ def loopEvents(RUNID,ID1,ID2):
    #########################################
    ### Set nb of events
    #########################################
-   minN = 1000
-   maxN = 80000
-   #maxN = np.size(evts)
+   minN = 1
+   #maxN = 1000
+   maxN = np.size(evts)
    if (maxN-minN)%2 == 1: 
      print "Warning... Odd number of events. Cutting last one to build pairs."
      maxN = maxN-1
@@ -37,6 +37,7 @@ def loopEvents(RUNID,ID1,ID2):
    print 'Number of events:',len(evts)-1
    time.sleep(1)
    date = []
+   dates = []
    board = np.zeros(shape=(dimarray))
    TS2 = np.zeros(shape=(dimarray))
    TS1PPS = np.zeros(shape=(dimarray))
@@ -48,11 +49,10 @@ def loopEvents(RUNID,ID1,ID2):
    data = list()
    j = 0
          
-   for i in range(minN,maxN+1):  # Skip at least first elemt (empty)
+   for i in range(minN,maxN):  # Here toggle+0/-1 if crashes at trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor (ugly fix) 
      
      if float(i)/100 == int(i/100):
      	  print 'Event ',i
-
 
  
      evt = evts[i]
@@ -60,11 +60,16 @@ def loopEvents(RUNID,ID1,ID2):
      if np.size(evtsplit)>8:   # Event is of normal size
        #date.append(evtsplit[1])
        d = mx.DateTime.DateTimeFrom(evtsplit[1])  # Better parser than standatetime module
+       evt1 = evtsplit[1].split(' ')
+       timefield = evt1[-3]
+       ev1 = (float(timefield[0:2])*60*60+float(timefield[3:5])*60+float(timefield[6:]))
+       dates = np.append(dates, ev1)
+       
        date.append(d)
-       IP = evtsplit[2][3:]
-       if IP=='192.168.1.1'+str(ID1):
+       IP=int(evtsplit[2].split('.')[-1])
+       if IP==100+int(ID1):
          board[j] = 01
-       if IP=='192.168.1.1'+str(ID2):
+       if IP==100+int(ID2):
          board[j] = 02
        if j>0 and board[j]==board[j-1]:
 	  print i,j,board[j-1],board[j],int(evtsplit[6][4:])
@@ -110,7 +115,6 @@ def loopEvents(RUNID,ID1,ID2):
      print "Skipping last (unpaired) event"
      board = board[:-1]
      
-   print board
    # Build trig time
    date = np.array(date)
    boards = set(board[np.where(board>0)])
@@ -140,19 +144,21 @@ def loopEvents(RUNID,ID1,ID2):
         print "No maxCoarse data ==> no correction."
         cor = 1
      else:
-       maxCoarse = np.zeros(np.shape(sel))
+       maxCoarse = np.zeros((np.size(sel),1))
        for k in range(np.size(sel)): 
      	 idift = np.argmin(np.abs(date[k]-d))
-	 maxCoarse[0,k] = maxCoarseRaw[idift]
+	 maxCoarse[k] = maxCoarseRaw[idift]
        cor=125e6/(maxCoarse+1)
-       #sel2 = np.where(np.abs(maxCoarse[0,:]-np.mean(maxCoarse[0,:]))<1e6)
-       #pl.figure(17)
-       #pid = 210+id
-       #pl.subplot(int(pid))
-       #pl.plot(maxCoarse[0,sel2],'+k')	
-     #print 'Correction factor for 125MHz clock for board',id,':',cor
+       pl.figure(13)
+       if id==1:
+         pl.plot(maxCoarse,'+b',label='board 1')
+       if id==2:
+	 pl.plot(maxCoarse,'+r',label='board 2')
+       pl.xlabel('Event nb')
+       pl.ylabel('MaxCoarse')
+       pl.legend()
+       #print 'Correction factor for 125MHz clock for board',id,':',cor
      
-     #print id,np.shape(sel),np.shape(sel1)
      trigtime[sel] = SSS[sel1] +(TS2[sel]*4+TS1PPS[sel]-TS1Trig[sel])*2e-9*cor  #s. Use same SSS for both cards. Warning: requires 100% trigger + odd nb of events
      if id == 1:
        newS1 = np.where(np.diff(SSS[sel])>0)[[0][-1]]+1  # index of 1st event in new second for board 1
@@ -166,6 +172,7 @@ def loopEvents(RUNID,ID1,ID2):
      #  print newS1
      #  print newS2
 
+   dates_2 = dates[newS1]
    trigtime1 = trigtime[np.where(board == list(boards)[0])]
    trigtime2 = trigtime[np.where(board == list(boards)[1])]
    #TS21 = TS2[np.where(board == list(boards)[0])]  # This is the clock count for the 1st event in the new second
@@ -179,16 +186,23 @@ def loopEvents(RUNID,ID1,ID2):
    for i in range(len(trigtime2)-1):
    	tdiff_b2[i]=(trigtime2[i+1]-trigtime2[i])*1e3
 
-   tdiff_b1 = tdiff_b1[tdiff_b1>0]
-   tdiff_b2 = tdiff_b2[tdiff_b2>0]
+   #tdiff_b1 = tdiff_b1[tdiff_b1>0]
+   #tdiff_b2 = tdiff_b2[tdiff_b2>0]
 
+   np.savetxt('dates.txt', dates_2)
+   np.savetxt('dPPS.txt', dPPS)
 
-   print 'Time delay beween consecutive events for board 1:',np.mean(tdiff_b1),'ms'
-   print 'Time delay beween consecutive events for board 2:',np.mean(tdiff_b2),'ms'
+   selb1 = np.intersect1d(np.where(tdiff_b1<np.mean(tdiff_b1)+np.std(tdiff_b1)),np.where(tdiff_b1>np.mean(tdiff_b1)-np.std(tdiff_b1)))
+   selb2 = np.intersect1d(np.where(tdiff_b2<np.mean(tdiff_b2)+np.std(tdiff_b2)),np.where(tdiff_b2>np.mean(tdiff_b2)-np.std(tdiff_b2)))
+   dif1 = np.mean(tdiff_b1[selb1])
+   dif2 = np.mean(tdiff_b2[selb2])
+   #print 'Time delay beween consecutive events for board 1:',dif1,'ms'
+   #print 'Time delay beween consecutive events for board 2:',dif2,'ms'
 
-   sel = np.where(np.abs(tdiff)<300)[[0][-1]]
+   sel = np.where(np.abs(tdiff)<200)[[0][-1]]
+   selpps = np.where(np.abs(dPPS)<200)[[0][-1]]
    print 'Delta Trig Time = ',np.mean(tdiff[sel]),'+-',np.std(tdiff[sel]),'ns'
-   print 'Delta Trig Time @ new PPS = ',np.mean(dPPS),'+-',np.std(dPPS),'ns'
+   print 'Delta Trig Time @ new PPS = ',np.mean(dPPS[selpps]),'+-',np.std(dPPS[selpps]),'ns'
    pl.figure(1)
    pl.plot(trigtime1[1:],label='Board 1')
    pl.hold(True)
@@ -210,28 +224,32 @@ def loopEvents(RUNID,ID1,ID2):
    pl.hist(tdiff[sel],100)
    pl.xlabel('trigtime_b2-trigtime_b1 [ns]')
    pl.subplot(313)
-   pl.hist(dPPS,100)
+   pl.hist(dPPS[selpps],100)
    pl.xlabel('trigtime_b2-trigtime_b1 @ newPPS [ns]')
-
+   
+   selb1 = np.intersect1d(np.where(tdiff_b1<dif1+0.001),np.where(tdiff_b1>dif1-0.001))
+   selb2 = np.intersect1d(np.where(tdiff_b2<dif2+0.001),np.where(tdiff_b2>dif2-0.001))
    pl.figure(18)
    pl.subplot(221)
-   pl.plot(tdiff_b1[1:])
+   pl.plot(tdiff_b1[selb1]*1e6)
    pl.xlabel('Event nb')
-   pl.ylabel('Consecutive Delta Trigtime [ms]')
+   pl.ylabel('Consecutive Delta Trigtime (ns)')
    pl.title("Board b1")
    pl.subplot(222)
    pl.title("Board b1")
-   pl.hist(tdiff_b1[1:],1000)
-   pl.xlabel('Consecutive Delta Trigtime [ms]')
+   pl.hist(tdiff_b1[selb1]*1e6,1000)
+   pl.xlabel('Consecutive Delta Trigtime (ns)')
    pl.subplot(223)
    pl.title("Board b2")
-   pl.plot(tdiff_b2[1:])
+   pl.plot(tdiff_b2[selb2]*1e6)
    pl.xlabel('Event nb')
-   pl.ylabel('Consecutive Delta Trigtime [ms]')
+   pl.ylabel('Consecutive Delta Trigtime (ns)')
    pl.subplot(224)
    pl.title("Board b2")
-   pl.hist(tdiff_b2[1:],1000)
-   pl.xlabel('Consecutive Delta Trigtime [ms]')
+   pl.hist(tdiff_b2[selb2]*1e6,1000)
+   pl.xlabel('Consecutive Delta Trigtime (ns)')
+   print 'Time delay beween consecutive events for board 1:',np.mean(tdiff_b1[selb1]),'ms +-',np.std(tdiff_b1[selb1]*1e6),'ns'
+   print 'Time delay beween consecutive events for board 2:',np.mean(tdiff_b2[selb2]),'ms +-',np.std(tdiff_b2[selb2]*1e6),'ns'
    pl.show()
 
 

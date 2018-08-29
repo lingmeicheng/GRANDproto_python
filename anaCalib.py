@@ -11,7 +11,8 @@ def loopEvents(RUNID,boardID,att):
    print 'DISPLAY = ',DISPLAY 
    pl.ion()
    filename = "C"+RUNID+"_b"+boardID+".data.txt"
-   datafile = '../data/'+filename
+   #datafile = '../data/ulastai/'+filename
+   datafile = '/home/martineau/GRAND/GRANDproto35/data/ulastai/'+filename
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -151,7 +152,8 @@ def anaRuns(boardID,runstart,runstop):   # Analyse runs and write result to file
   for i in range(np.size(runs)):  #loop on runs
     runid = runs[i]
     # Grab attenuation values from config file
-    file = open("../data/C"+str(runid)+"_b"+boardID+".cfg", "r")
+    folder="/home/martineau/GRAND/GRANDproto35/data/ulastai"
+    file = open(folder+"/C"+str(runid)+"_b"+boardID+".cfg", "r")
     for line in file:
       if re.search("Attr1", line):
     	 att1 = int(line.split()[2])
@@ -210,37 +212,38 @@ def anaRes(boardID,runstart,runstop):
   pl.legend(loc='best')
 
   # Now load external calib data Inout = 66MHz+100mV sine wave + att = 30dB + splitter
-  f = np.loadtxt('calibExt.txt')
-  runex = f[:,0]
-  boardex = f[:,1]
-  selex = np.where(boardex==int(boardID))[0]
-  Vinex = f[selex,2]*0.001  # mV==>V
-  Vindaq = Vinex*pow(10,-30./20)*0.5  # Now apply attenuation (attenuator+splitter)
+  if 0:
+    f = np.loadtxt('calibExt.txt')
+    runex = f[:,0]
+    boardex = f[:,1]
+    selex = np.where(boardex==int(boardID))[0]
+    Vinex = f[selex,2]*0.001  # mV==>V
+    Vindaq = Vinex*pow(10,-30./20)*0.5  # Now apply attenuation (attenuator+splitter)
     
-  mex = np.empty([len(selex),3])
-  emex = np.empty([len(selex),3])
-  for k in range(3):
-    mex[:,k] = f[selex,3+2*k]
-    emex[:,k] = f[selex,3+2*k+1]
-  for k in range(3):
-    z = np.polyfit(attdB[sel],mm[sel,k][0],1)  # Linear fit
-    yth = attdB*z[0]+z[1]
-    #pl.subplot(2,1,1)
-    fig = pl.figure(12)
-    pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
-    pl.plot(attdB,yth,'y--')
-    print 'Channel',k,', slope=',z[0],'V/dB'
-    fig3 = pl.figure(13)
-    sind = k+1
-    sbp2 = pl.subplot(3,1,sind)
-    sbp2.set_xscale('log')
-    pl.errorbar(vin,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
-    pl.errorbar(Vindaq,mex[:,k],yerr=emex[:,k],lw=2,label='ExtSin - Channel {0}'.format(k))  
-    pl.grid(True)
-    if k==2: 
-      pl.xlabel('Signal amplitude @ channel input [Vpp]')
-    pl.ylabel('Mean output level [V]')
-    pl.legend(loc='best')
+    mex = np.empty([len(selex),3])
+    emex = np.empty([len(selex),3])
+    for k in range(3):
+      mex[:,k] = f[selex,3+2*k]
+      emex[:,k] = f[selex,3+2*k+1]
+    for k in range(3):
+      z = np.polyfit(attdB[sel],mm[sel,k][0],1)  # Linear fit
+      yth = attdB*z[0]+z[1]
+      #pl.subplot(2,1,1)
+      fig = pl.figure(12)
+      pl.errorbar(attdB,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
+      pl.plot(attdB,yth,'y--')
+      print 'Channel',k,', slope=',z[0],'V/dB'
+      fig3 = pl.figure(13)
+      sind = k+1
+      sbp2 = pl.subplot(3,1,sind)
+      sbp2.set_xscale('log')
+      pl.errorbar(vin,mm[:,k],yerr=emm[:,k],lw=2,label='Channel {0}'.format(k))
+      pl.errorbar(Vindaq,mex[:,k],yerr=emex[:,k],lw=2,label='ExtSin - Channel {0}'.format(k))
+      pl.grid(True)
+      if k==2:
+    	pl.xlabel('Signal amplitude @ channel input [Vpp]')
+      pl.ylabel('Mean output level [V]')
+      pl.legend(loc='best')
   
   pl.figure(12)
   pl.title('Board {0} R{1}-{2}'.format(boardID,runstart,runstop))
@@ -287,6 +290,12 @@ if __name__ == '__main__':
     #runs=range(407,419)  # board 12 02/07/2018
     runs=range(444,470)  # board 12 02/07/2018
     
-  #anaRuns(sys.argv[1],runs[0],runs[-1])
+  if sys.argv[1] == "09":
+    runs=range(3905,3918)  # board 09 27/08/2018
+
+  if sys.argv[1] == "25":
+    runs=range(4101,4114)  # board 25 27/08/2018
+
+  anaRuns(sys.argv[1],runs[0],runs[-1])
   anaRes(sys.argv[1],runs[0],runs[-1])
 

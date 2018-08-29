@@ -1,3 +1,6 @@
+# Script to reduce minBias data
+# and plot resulting file minBias_b[ID].txt
+
 import os
 import time
 import sys
@@ -7,37 +10,47 @@ import ephem
 import datetime
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')
 import pylab as pl
 
+def loopRuns(boardID,startrun,endrun):
+  print "Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun)
+  time.sleep(1)
+  
+  datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
+  for run in range(int(startrun),int(endrun)+1):
+    # Build run name
+    filename = datadir+'M'+str(run)+'_b05.data.txt'
+    loopEvents(filename,boardID)
 
-def loopEvents(runID,boardID):
+def loopEvents(filename,boardID):
 
-   timeslice = 60
+   timeslice = 60  # Time duration for the data integration (mins)
    
-   resfile = 'minBias.txt'
+   resfile = 'minBias_b'+boardID+'.txt'  # Output file
    reso = open(resfile,'ab')
    a = np.loadtxt(resfile)
-   if np.size(a)>0:
-     tfmax =  a[-1,0]
-   else:
+   try:
+     tfmax =  a[-1,0]   
+   except IndexError:  # When file is empty 
      tfmax = 0
-   
-   folder = '/home/martineau/GRAND/GRANDproto35/data/ulastai/'
-   filename = 'M'+runID+'_b'+boardID+'.data.txt'
-   datafile = folder+filename
-   print 'Scanning minBias datafile',datafile
-   with open(datafile,"r") as f:
+
+
+   if os.path.isfile(filename) is False:
+     print 'File ',filename,'does not exist. Abort'
+     return
+   print 'Scanning minBias datafile',filename
+   with open(filename,"r") as f:
    	   evts = f.read().split('-----------------')
 
    nevts = len(evts)-1
    print 'Number of events:',nevts  # First element does not count
    time.sleep(1)
+   
+   # Arrays initialization
    unixsecs = []
    data = list()
-  
-   #pl.ion()
-
+   
+   # Loop on events
    j = 0;  # Index of array filling (because date & data are "append")
    for i in range(0,nevts-1):
            if float(i)/100 == int(i/100):
@@ -50,38 +63,24 @@ def loopEvents(runID,boardID):
 		   IP = evtsplit[2][3:]
 		   board = int(IP[-2:]);
 		   if board != int(boardID):
-		     print 'Board {0}, skip it (analysing board {1} only)'.format(board,boardID)
+		     print 'This is board {0}, skiping it (analysing board {1} only)'.format(board,boardID)
 		     continue
 		   
+		   # Now reducing data
+		   # Time info
 		   date = evtsplit[1]
-		   a = evtsplit[1].split()
-      		   year = int(a[4])
-		   if a[1]=='May':
-		     month = 5
-		   elif  a[1]=='June':   
-		     month = 6
-		   elif  a[1]=='Jul':   
-		     month = 7
-		     
-      		   day = int(a[2])
-      		   h = int(a[3].split(':')[0])
-      		   mn = int(a[3].split(':')[1])
-      		   s = int(a[3].split(':')[2])
-      		   dstrf = '{0}/{1}/{2} {3}:{4}:{5}'.format(year,month,day,h,mn,s)
-      		   #print 'dstrf:',dstrf
-      		   d = datetime.datetime(year,month,day,h,mn,s)
-      		   sec = time.mktime(d.timetuple())
-		   if sec<=tfmax:
-		     print 'Date already in {0}, skip data.'.format(resfile)
+		   thisDatetime = datetime.datetime.strptime(date, '%a %b %d %H:%M:%S %Y GMT')
+      		   utcsec = (thisDatetime - datetime.datetime(1970,1,1)).total_seconds()
+		   if utcsec<=tfmax: # Only looking at data more recent than already present in minBias_b[ID].txt
+		     print 'Older data than in {0}, skiping it.'.format(resfile)
 		     continue
-		
-		   # Now only fresh data on valid board
-		   unixsecs.append(sec)                   
+		   unixsecs.append(utcsec)
+		                      
 		   # Data
    		   raw=evtsplit[9:][:]  #raw data
    		   raw2 = raw[0].split(" ") # Cut raw data list into samples
 		   raw2 = raw2[0:np.size(raw2)-1]   # Remove last element (empty)
-		   hraw2 = [hex(int(a)) for a in raw2]  # TRansfer back to hexadecimal
+		   hraw2 = [hex(int(a)) for a in raw2]  # Transfer back to hexadecimal
    		   draw = [twos_comp(int(a,16), 12) for a in hraw2] #2s complements
 		   nsamples = len(draw)/4  # Separate data to each channel
 		   thisEvent = np.reshape(draw,(4,nsamples));
@@ -91,83 +90,89 @@ def loopEvents(runID,boardID):
    	   else:
    		   print 'Error! Empty event',i
 
+   #
    nevtsb = np.shape(data)[0]
    sig = np.asarray([])
    tt = np.asarray([])
    lst = np.asarray([])
-   # Local sideral time info
+   # Local sideral time info @ Ulastai
    ulastai = ephem.Observer();
    ulastai.long = ephem.degrees("86.71")
    ulastai.lat = ephem.degrees("42.95")
    ulastai.elevation = 2650;
 
-   for b in [0]:
+   # Analysing 
+   if nevtsb==0:  # No data read for this antenna in this run     
+     return
      
-     # Group events
-     comEventX = []
-     comEventY = []
-     comEventZ = []
-     
-     print '{0} new data points in {1}.\nNow adding them to minBias result file {2}.'.format(nevtsb,datafile,resfile)
-     
-     j = 0
-     i = 1    
-     istart = 0
-     while i < min(nevtsb,500000):  #Loop on all events from this board
-       if float(i)/100 == int(i/100):
-	 print 'Analysing event',i,'/',nevtsb
-       ind = i
-       #print i,nevtsb,np.shape(data)
-       thisEvent = data[ind]  
-       if unixsecs[i]-unixsecs[istart]<timeslice:  # Close event in time: merge
-         #print 'Adding event',i
-         comEventX = np.concatenate((comEventX,thisEvent[0][:]),axis=0)
-         comEventY = np.concatenate((comEventY,thisEvent[1][:]),axis=0)
-         comEventZ = np.concatenate((comEventZ,thisEvent[2][:]),axis=0)
-       else:
-         #print 'Done!'
-	 #print b,istart,i,unixsecs[istart],unixsecs[i],np.mean(comEventX)
-	 ulastai.date = datetime.datetime.fromtimestamp(unixsecs[istart])
-	 sig = np.append(sig,[unixsecs[i],ulastai.sidereal_time(),np.mean(comEventX), np.mean(comEventY), np.mean(comEventZ)])	 
-	 #lst = np.append(lst,ulastai.sidereal_time())  # LST is an PyEphem angle (in hours)
-	 #print ulastai.date,ephem.hours(lst[j])
-
-	 
-	 if 1:  #DISPLAY
- 	   pl.figure(1)
- 	   pl.subplot(311)
- 	   pl.plot(comEventX)
- 	   pl.subplot(312)
- 	   pl.plot(comEventY)
- 	   pl.subplot(313)
- 	   pl.plot(comEventZ)
- 	   pl.show()
- 	   raw_input()
- 	   pl.close(1)
-	 
-	 istart = i  
-	 j = j+1
-	 
-	 comEventX = []
-         comEventY = []
-         comEventZ = []
-	 
-       i = i+1;
-   ulastai.date = datetime.datetime.fromtimestamp(unixsecs[istart])    
-   sig = np.append(sig,[unixsecs[-1],ulastai.sidereal_time(),np.mean(comEventX), np.mean(comEventY), np.mean(comEventZ)])	 
+   print '{0} new data points in {1}.\nNow adding them to minBias result file {2}.'.format(nevtsb,filename,resfile)
+   
+   # Now group events
+   comEventX = []
+   comEventY = []
+   comEventZ = []
+   j = 0
+   i = 1    
+   istart = 0
+   
+   while i < min(nevtsb,500000):  #Loop on all events from this board
+     if float(i)/100 == int(i/100):
+       print 'Analysing event',i,'/',nevtsb
+     ind = i
+     #print i,nevtsb,np.shape(data)
+     thisEvent = data[ind]  
+     if unixsecs[i]-unixsecs[istart]<timeslice:  # Close event in time: merge them
+       #print 'Adding event',i
+       comEventX = np.concatenate((comEventX,thisEvent[0][:]),axis=0)
+       comEventY = np.concatenate((comEventY,thisEvent[1][:]),axis=0)
+       comEventZ = np.concatenate((comEventZ,thisEvent[2][:]),axis=0)
+     else:  # Time slice now ended. 
+       # Saving last slice to sig array
+       ulastai.date = datetime.datetime.fromtimestamp(unixsecs[istart])
+       sig = np.append(sig,[unixsecs[i],ulastai.sidereal_time(),np.mean(comEventX), np.mean(comEventY), np.mean(comEventZ)])   
+       
+       if 0:  #DISPLAY
+         pl.figure(1)
+         pl.subplot(311)
+         pl.plot(comEventX)
+         pl.subplot(312)
+         pl.plot(comEventY)
+         pl.subplot(313)
+         pl.plot(comEventZ)
+         pl.show()
+         raw_input()
+         pl.close(1)
+       
+       # Reset parameters for next slice
+       istart = i  
+       j = j+1
+       comEventX = []
+       comEventY = []
+       comEventZ = []
+       
+     i = i+1;
+   
+   # Add last event     
+   if j == 0:
+     ulastai.date = datetime.datetime.fromtimestamp(unixsecs[istart])    
+     sig = np.append(sig,[unixsecs[-1],ulastai.sidereal_time(),np.mean(comEventX), np.mean(comEventY), np.mean(comEventZ)])	 
 
    # End of loop on all data. Now write to file.
    sig = sig.reshape(np.size(sig)/5,5)
    np.savetxt(reso, sig)
 
-def displayGalVar():
-   pl.ion()
-   font = {'family' : 'normal','weight' : 'bold','size'   : 22}
- 
-   pl.rc('font', **font)
+
+def displayGalVar(resfile):
+   print "Calling displayGalVar(). Will display minBias result file {0}".format(resfile)
+   sd,sm,sy=01,01,2017  # Start day,month,year
+   ed,em,ey=1,1,2024  #End day,month,year
+   print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)
+   startwindow=(datetime.datetime(sy,sd,sm)-datetime.datetime(1970,1,1)).total_seconds()
+   endwindow=(datetime.datetime(ey,ed,em)-datetime.datetime(1970,1,1)).total_seconds()
+   time.sleep(1)
    
+   # Load data
    adcF = 2./4096 # 12bits 2V 
-   resfile = 'minBias.txt'
    reso = open(resfile,'ab')
    a = np.loadtxt(resfile)
    t = a[:,0]
@@ -175,7 +180,7 @@ def displayGalVar():
    x = a[:,2]*adcF
    y = a[:,3]*adcF
    z = a[:,4]*adcF
-   sel = np.where(t<14960000000)
+   sel = np.where((t<endwindow) & (t> startwindow))
    t = t[sel]
    lst = lst[sel]
    x = x[sel]
@@ -185,7 +190,7 @@ def displayGalVar():
    
    nticks = 8
    ind = np.linspace(min(t),max(t),nticks)
-   date = [datetime.datetime.fromtimestamp(ux).strftime('%Y/%m/%d') for ux in ind]
+   date = [datetime.datetime.fromtimestamp(ux).strftime('%m/%d') for ux in ind]
    lsth = lst*24./(2*np.pi); # Now in 0:24h range
 
   
@@ -195,7 +200,8 @@ def displayGalVar():
      pl.figure(1)
      pl.plot(t,thisSig-0.05*k,'+')
      pl.xticks(np.linspace(min(t),max(t),nticks), date)
-     pl.xlabel('Date [Year/Month/Day]',size='large')
+     pl.xlim(min(t)-1,max(t)+1)
+     pl.xlabel('Date [Month/Day]',size='large')
      pl.ylabel('Mean ADC voltage [V]',size='large')
      pl.grid(True)
      pl.show()
@@ -204,15 +210,16 @@ def displayGalVar():
      subp = 311+k
      pl.subplot(subp)
      pl.plot(lsth,thisSig,'+')
+     pl.plot(lsth[-1],thisSig[-1],'o')
      pl.xticks([h for h in range(0,24,2)], ['%i:00'%h for h in range(0,24,2)])
      pl.xlim(0,24)
      pl.title('Channel {0} - {1}'.format(k,resfile))
-     pl.ylabel('Mean bline [V]')
+     pl.ylabel('Mean baseline (V)')
      if k == 2:
-       pl.xlabel('Local Sideral Time [h]')
+       pl.xlabel('Local Sideral Time (h)')
      pl.grid(True)
      pl.show()
-     pl.savefig('minbias.png')
+   pl.savefig('{0}.png'.format(resfile))
   
 def get_1stone(val):
     if val == '0x1':
@@ -244,7 +251,7 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     #loopEvents(sys.argv[1],sys.argv[2])
-     displayGalVar()
-     pl.ion()
+     
+     #loopRuns(sys.argv[1],sys.argv[2],sys.argv[3])
+     displayGalVar(sys.argv[1])
      
