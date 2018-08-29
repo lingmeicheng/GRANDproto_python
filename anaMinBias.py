@@ -69,12 +69,12 @@ def loopEvents(filename,boardID):
 		   # Now reducing data
 		   # Time info
 		   date = evtsplit[1]
-		   thisDatetime = datetime.datetime.strptime(date, '%a %b %d %H:%M:%S %Y GMT')
-      		   utcsec = (thisDatetime - datetime.datetime(1970,1,1)).total_seconds()
+		   thisDatetime = datetime.datetime.strptime(date, '%a %b %d %H:%M:%S %Y GMT')  # Build DateTime object
+      		   utcsec = time.mktime(thisDatetime.timetuple())  # Build UTC second
 		   if utcsec<=tfmax: # Only looking at data more recent than already present in minBias_b[ID].txt
 		     print 'Older data than in {0}, skiping it.'.format(resfile)
-		     continue
-		   unixsecs.append(utcsec)
+		     continue		   
+                   unixsecs.append(utcsec)
 		                      
 		   # Data
    		   raw=evtsplit[9:][:]  #raw data
@@ -252,6 +252,6 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
      
-     #loopRuns(sys.argv[1],sys.argv[2],sys.argv[3])
-     displayGalVar(sys.argv[1])
+     loopRuns(sys.argv[1],sys.argv[2],sys.argv[3])
+     #displayGalVar(sys.argv[1])
      
