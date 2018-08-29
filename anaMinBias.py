@@ -63,7 +63,7 @@ def loopEvents(filename,boardID):
 		   IP = evtsplit[2][3:]
 		   board = int(IP[-2:]);
 		   if board != int(boardID):
-		     print 'This is board {0}, skiping it (analysing board {1} only)'.format(board,boardID)
+		     #print 'This is board {0}, skiping it (analysing board {1} only)'.format(board,boardID)
 		     continue
 		   
 		   # Now reducing data
@@ -164,11 +164,11 @@ def loopEvents(filename,boardID):
 
 def displayGalVar(resfile):
    print "Calling displayGalVar(). Will display minBias result file {0}".format(resfile)
-   sd,sm,sy=01,01,2017  # Start day,month,year
+   sd,sm,sy=29,8,2018  # Start day,month,year
    ed,em,ey=1,1,2024  #End day,month,year
    print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)
-   startwindow=(datetime.datetime(sy,sd,sm)-datetime.datetime(1970,1,1)).total_seconds()
-   endwindow=(datetime.datetime(ey,ed,em)-datetime.datetime(1970,1,1)).total_seconds()
+   startwindow=(datetime.datetime(sy,sm,sd)-datetime.datetime(1970,1,1)).total_seconds()
+   endwindow=(datetime.datetime(ey,em,ed)-datetime.datetime(1970,1,1)).total_seconds()
    time.sleep(1)
    
    # Load data
@@ -252,6 +252,6 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
      
-     loopRuns(sys.argv[1],sys.argv[2],sys.argv[3])
-     #displayGalVar(sys.argv[1])
+     #loopRuns(sys.argv[1],sys.argv[2],sys.argv[3])
+     displayGalVar(sys.argv[1])
      
