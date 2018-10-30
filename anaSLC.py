@@ -74,13 +74,14 @@ def loop(filename):
 
    time = (time-min(time[time>0]))/60
    Triglabel = ['Total','Ch1+','Ch2+','Ch3+','Ch1-','Ch2-','Ch3-']
-   Voltlabel = ['Main','+3V','-4V','LNA1','LNA2','LNA3']
+   Voltlabel = ['Main','-3V','+4V','LNA1','LNA2','LNA3']
    boards = set(board[np.where(board>0)])
    print 'Boards in run:',list(boards)
    print 'Run start:', date[0]
    
    # Loop on all boards
-   for id in boards:
+   #for id in boards:
+   for id in [31]:
    	   sel = np.where(board == id)
 	   date_end = date[sel[0][-1]]
    	   print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
@@ -122,7 +123,7 @@ def loop(filename):
 	   # MaxCoarse info
 	   pl.figure(4)  #MaxCoarse
 	   pl.subplot(211)
-	   pl.plot(time[sel],thisMaxCoarse[thisMaxCoarse>0])
+	   pl.plot(time[thisMaxCoarse>0],thisMaxCoarse[thisMaxCoarse>0])
 	   pl.ylabel('MaxCoarse')
 	   pl.xlabel('Time (mn)')
 	   pl.subplot(212)

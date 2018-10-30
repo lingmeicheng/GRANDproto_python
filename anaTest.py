@@ -11,7 +11,7 @@ from scipy.optimize import curve_fit
 
 def loopEvents(RUNID,folder,BOARDID,TYPE):
    pl.ion()
-   DISPLAY = 0
+   DISPLAY = 1
    nch = 4   #Nb of channels
    print 'DISPLAY = ',DISPLAY 
    
@@ -20,10 +20,12 @@ def loopEvents(RUNID,folder,BOARDID,TYPE):
      pre='C'
    elif TYPE=='4':
      pre='M'
+   elif TYPE=='2':
+     pre='R'
    else:
      print 'Wrong TYPE!'
      
-   datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data.txt'  
+   datafile = folder+'/'+pre+str(RUNID)+'_b'+str(BOARDID)+'.data'  
    print 'Scanning',datafile
 
    with open(datafile,"r") as f:
@@ -91,23 +93,23 @@ def loopEvents(RUNID,folder,BOARDID,TYPE):
  		     pl.figure(j)
 		     pl.subplot(221)
  		     pl.plot(t[3:],thisEvent[0][3:])
- 		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     pl.xlabel('Time ($\mu$s)')
+ 		     pl.ylabel('X amplitude (V)')
  		     pl.grid(True)
 		     pl.subplot(222)
- 		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     pl.xlabel('Time ($\mu$s)')
+ 		     pl.ylabel('Y amplitude (V)')
  		     pl.plot(t[3:],thisEvent[1][3:])
  		     pl.grid(True)
 		     pl.subplot(223)
  		     pl.plot(t[3:],thisEvent[2][3:])
- 		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     pl.xlabel('Time ($\mu$s)')
+ 		     pl.ylabel('Z amplitude (V)')
  		     pl.grid(True)
 		     pl.subplot(224)
  		     pl.plot(t[3:],thisEvent[3][3:])
- 		     pl.xlabel('Time [mus]')
- 		     pl.ylabel('Amplitude [V]')
+ 		     pl.xlabel('Time ($\mu$s)')
+ 		     pl.ylabel('Calibrator amplitude (V)')
  		     pl.grid(True)
 
  		     pl.suptitle('Board {0} Event {1}'.format(board[j],EvtId[j]))

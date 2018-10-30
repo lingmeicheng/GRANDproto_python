@@ -11,6 +11,7 @@ import datetime
 import numpy as np
 import matplotlib
 import pylab as pl
+pl.ion()
 
 def loopRuns(boardID,startrun,endrun):
   print "Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun)
@@ -100,7 +101,7 @@ def loopEvents(filename,boardID):
    ulastai.long = ephem.degrees("86.71")
    ulastai.lat = ephem.degrees("42.95")
    ulastai.elevation = 2650;
-
+       
    # Analysing 
    if nevtsb==0:  # No data read for this antenna in this run     
      return
@@ -164,8 +165,8 @@ def loopEvents(filename,boardID):
 
 def displayGalVar(resfile):
    print "Calling displayGalVar(). Will display minBias result file {0}".format(resfile)
-   sd,sm,sy=29,8,2018  # Start day,month,year
-   ed,em,ey=1,1,2024  #End day,month,year
+   sd,sm,sy=28,8,2018  # Start day,month,year
+   ed,em,ey=1,1,2024  # End day,month,year
    print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)
    startwindow=(datetime.datetime(sy,sm,sd)-datetime.datetime(1970,1,1)).total_seconds()
    endwindow=(datetime.datetime(ey,em,ed)-datetime.datetime(1970,1,1)).total_seconds()

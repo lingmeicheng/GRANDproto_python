@@ -1,5 +1,5 @@
 # Base script to analyse standard dat
-# OMH AUg 29, 2018
+# OMH Aug 29, 2018
 
 import os
 import time

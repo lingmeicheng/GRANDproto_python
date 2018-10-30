@@ -14,6 +14,7 @@ dur = 10  #Duration of runs to be checked in testthreshn.py)
 
 fname = 'thresh' + TYPE + '_b' + boardid + '.txt' 
 fname = folder+'/'+fname
+print fname
 a = np.loadtxt(fname)
 pat = a[:,0]
 th = a[:,1]
@@ -48,7 +49,7 @@ if TYPE=='s':
 ax.set_xlabel('Threshold (mV)')
 pl.grid(True)
 pl.legend(loc='best')
-#pl.show()
+pl.show()
 
 if TYPE=='n':
   fig.savefig(folder+'/thresh_noise.png')

@@ -296,6 +296,10 @@ if __name__ == '__main__':
   if sys.argv[1] == "25":
     runs=range(4101,4114)  # board 25 27/08/2018
 
-  anaRuns(sys.argv[1],runs[0],runs[-1])
+  if sys.argv[1] == "31":
+    runs=range(4883,4895)  # board 25 27/08/2018
+
+
+  #anaRuns(sys.argv[1],runs[0],runs[-1])
   anaRes(sys.argv[1],runs[0],runs[-1])
 
