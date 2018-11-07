@@ -80,8 +80,8 @@ def loop(filename):
    print 'Run start:', date[0]
    
    # Loop on all boards
-   #for id in boards:
-   for id in [31]:
+   for id in boards:
+   #for id in [06]:
    	   sel = np.where(board == id)
 	   date_end = date[sel[0][-1]]
    	   print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
@@ -94,6 +94,7 @@ def loop(filename):
 	   pl.xlabel('Time (mn)')
 	   pl.ylabel('Temperature ($^{\circ}$C)')
 	   pl.title('Board temperature')
+	   pl.savefig('temp.png')	
 
 	   # Voltage plot
 	   pl.figure(2)
@@ -108,6 +109,7 @@ def loop(filename):
   		  pl.xlabel('Time (mn)')
 		pl.title(Voltlabel[i])
  	        pl.ylabel('Voltage (V)')
+	   pl.savefig('voltage.png')	
 
 	   pl.figure(3)  #Trig Rate
 	   # Plottig total trig rate only. Switch to [sel,ch] and loop on ch if individual channel trig rate to be plotted
@@ -117,8 +119,9 @@ def loop(filename):
 	   pl.ylabel('Total trig rate (Hz)')
 	   pl.xlabel('Time (mn)')
 	   pl.legend(loc='best')
-		#pl.title('Board '+str(id))
-
+	   #pl.title('Board '+str(id))
+	   pl.savefig('trig.png')	
+	   
 	   thisMaxCoarse = maxCoarse[sel]
 	   # MaxCoarse info
 	   pl.figure(4)  #MaxCoarse
