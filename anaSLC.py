@@ -4,7 +4,7 @@
 import os
 import time
 import datetime
-import mx.DateTime
+#import mx.DateTime
 import sys
 import math
 import numpy as np
@@ -14,9 +14,9 @@ import matplotlib as mpl
 mpl.style.use('classic')
 
 def loop(RUNID,boardID):
-   datadir = "/home/pastsoft/data"
+   datadir = "/home/pastsoft/data/"
    #datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
-   filename = datadir+"S"+RUNID+"_b"+boardID+".data.txt"
+   filename = datadir+"S"+RUNID+"_b06.data.txt"   # To be modified
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
@@ -84,7 +84,7 @@ def loop(RUNID,boardID):
    
    # Loop on all boards
    #for id in boards:
-   for id in [int(BOARDID)]:
+   for id in [int(boardID)]:
    	   sel = np.where(board == id)
 	   date_end = date[sel[0][-1]]
    	   print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
@@ -115,11 +115,12 @@ def loop(RUNID,boardID):
 	   pl.savefig('voltage.png')	
 
 	   pl.figure(3)  #Trig Rate
-	   # Plottig total trig rate only. Switch to [sel,ch] and loop on ch if individual channel trig rate to be plotted
-           pl.plot(time[sel],TrigRate[sel,0][0],lw=2,label=id)
-	   # Plottig all individual trig rates. Switch to [sel,0] and loop on ch if individual channel trig rate to be plotted
-           for ch in range(3):
-	     pl.plot(time[sel],TrigRate[sel,ch][0],lw=2,label=id)
+           # Plotting total trig rate only. 
+	   # pl.plot(time[sel],TrigRate[sel,0][0],lw=2,label=id) 
+	   # Plotting all individual trig rates. 
+           labs = ['Total','X+','Y+','Z+','X-','Y-','Z-']
+	   for ch in range(7):
+	     pl.plot(time[sel],TrigRate[sel,ch][0],lw=2,label=labs[ch])
 	   
 	   #pl.yscale('log')
 	   pl.grid(True)
@@ -154,4 +155,7 @@ def twos_comp(val, bits):
 
 
 if __name__ == '__main__':
-     loop(sys.argv[1])
+     if len(sys.argv)!=3:
+       print "Usage: >loop RUNID BOARDID"
+     else:  
+       loop(sys.argv[1],sys.argv[2])

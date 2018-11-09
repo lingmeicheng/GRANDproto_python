@@ -5,6 +5,7 @@ import os
 import time
 import sys
 import math
+from os.path import expanduser
 
 import ephem
 import datetime
@@ -164,8 +165,12 @@ def loopEvents(filename,boardID):
    np.savetxt(reso, sig)
 
 
-def displayGalVar(resfile):
+def displayGalVar(boardID):
+   home = expanduser("~")
+   resdir = home+"/GRAND/GRANDproto35/data/ulastai/"
+   resfile = resdir+"minBias_b"+str(boardID)+".txt"
    print "Calling displayGalVar(). Will display minBias result file {0}".format(resfile)
+   
    sd,sm,sy=28,9,2018  # Start day,month,year
    ed,em,ey=1,1,2024  # End day,month,year
    print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)

@@ -12,7 +12,7 @@ lat = "42.95"
 y = int(sys.argv[1])
 m = int(sys.argv[2])
 d = int(sys.argv[3])
-h, mn, s = 0, 0 , 0
+h, mn, s = 8, 0 , 0
 if len(sys.argv)>4:
   h = int(sys.argv[4])
   if len(sys.argv)>5:
