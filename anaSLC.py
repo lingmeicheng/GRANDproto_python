@@ -13,7 +13,10 @@ import matplotlib.style
 import matplotlib as mpl
 mpl.style.use('classic')
 
-def loop(filename):
+def loop(RUNID,boardID):
+   datadir = "/home/pastsoft/data"
+   #datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
+   filename = datadir+"S"+RUNID+"_b"+boardID+".data.txt"
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
@@ -80,8 +83,8 @@ def loop(filename):
    print 'Run start:', date[0]
    
    # Loop on all boards
-   for id in boards:
-   #for id in [06]:
+   #for id in boards:
+   for id in [int(BOARDID)]:
    	   sel = np.where(board == id)
 	   date_end = date[sel[0][-1]]
    	   print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
@@ -114,6 +117,10 @@ def loop(filename):
 	   pl.figure(3)  #Trig Rate
 	   # Plottig total trig rate only. Switch to [sel,ch] and loop on ch if individual channel trig rate to be plotted
            pl.plot(time[sel],TrigRate[sel,0][0],lw=2,label=id)
+	   # Plottig all individual trig rates. Switch to [sel,0] and loop on ch if individual channel trig rate to be plotted
+           for ch in range(3):
+	     pl.plot(time[sel],TrigRate[sel,ch][0],lw=2,label=id)
+	   
 	   #pl.yscale('log')
 	   pl.grid(True)
 	   pl.ylabel('Total trig rate (Hz)')

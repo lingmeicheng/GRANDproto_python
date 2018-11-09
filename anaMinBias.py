@@ -17,7 +17,8 @@ def loopRuns(boardID,startrun,endrun):
   print "Calling loopRuns(). Will analyse minBias for board {0} between R{1} and R{2}.".format(boardID,startrun,endrun)
   time.sleep(1)
   
-  datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
+  datadir = "/home/pastsoft/data"
+  #  datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
   for run in range(int(startrun),int(endrun)+1):
     # Build run name
     filename = datadir+'M'+str(run)+'_b05.data.txt'
@@ -165,7 +166,7 @@ def loopEvents(filename,boardID):
 
 def displayGalVar(resfile):
    print "Calling displayGalVar(). Will display minBias result file {0}".format(resfile)
-   sd,sm,sy=28,8,2018  # Start day,month,year
+   sd,sm,sy=28,9,2018  # Start day,month,year
    ed,em,ey=1,1,2024  # End day,month,year
    print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)
    startwindow=(datetime.datetime(sy,sm,sd)-datetime.datetime(1970,1,1)).total_seconds()

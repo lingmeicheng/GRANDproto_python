@@ -18,7 +18,10 @@ DISPLAY = 0
 print 'DISPLAY = ',DISPLAY 
 pl.ion()
 
-def loopEvents(filename):
+def loopEvents(RUNID,boardID):
+   #datadir = "/home/pastsoft/data"
+   datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
+   filename = datadir+"R"+RUNID+"_b"+boardID+".data.txt"
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
@@ -60,6 +63,7 @@ def loopEvents(filename):
    # Loop on events
    j = 0;  # Index of array filling (because date & data are "append")
    for i in range(1,nevts+1):  
+   #for i in range(1,1000):  
    	   if float(i)/100 == int(i/100):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
@@ -194,8 +198,12 @@ def loopEvents(filename):
    print 'Run start:', date[0]
    print 'Boards in run:',list(boards)
    j = 0
-   for id in boards:  # Loop on all boards in run
+   #for id in boards:  # Loop on all boards in run
+   for id in [int(boardID)]:  # Loop on all boards in run
+     print id
+     print board
      sel = np.where(board == id)
+     print sel
      date_end = date[sel[0][-1]]
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
      if np.size(timein) > 0:
@@ -351,7 +359,7 @@ def twos_comp(val, bits):
    
 
 if __name__ == '__main__':
-     if len(sys.argv)!=2:
-       print "Usage: >loopEvents path/filename"
+     if len(sys.argv)!=3:
+       print "Usage: >loopEvents RUNID BOARDID"
      else:  
-       loopEvents(sys.argv[1])
+       loopEvents(sys.argv[1],sys.argv[2])

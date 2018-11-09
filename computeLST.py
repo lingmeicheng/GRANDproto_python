@@ -6,7 +6,9 @@ import sys
 # Gansu 
 longi = "94.10"
 lat = "39.35"
-
+#Ulastai
+longi = "86.71"
+lat = "42.95"
 y = int(sys.argv[1])
 m = int(sys.argv[2])
 d = int(sys.argv[3])
