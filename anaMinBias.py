@@ -173,7 +173,6 @@ def displayGalVar(boardID):
    
    sd,sm,sy=28,9,2018  # Start day,month,year
    ed,em,ey=1,1,2024  # End day,month,year
-   print "Period displayed: {0}/{1}/{2}-{3}/{4}/{5}".format(sd,sm,sy,ed,em,ey)
    startwindow=(datetime.datetime(sy,sm,sd)-datetime.datetime(1970,1,1)).total_seconds()
    endwindow=(datetime.datetime(ey,em,ed)-datetime.datetime(1970,1,1)).total_seconds()
    time.sleep(1)
@@ -198,6 +197,9 @@ def displayGalVar(boardID):
    nticks = 8
    ind = np.linspace(min(t),max(t),nticks)
    date = [datetime.datetime.fromtimestamp(ux).strftime('%m/%d') for ux in ind]
+   datestart = datetime.datetime.fromtimestamp(min(t)).strftime('%y/%m/%d')
+   dateend = datetime.datetime.fromtimestamp(max(t)).strftime('%y/%m/%d')
+   print "Actual period displayed: {0}-{1}".format(datestart,dateend)
    lsth = lst*24./(2*np.pi); # Now in 0:24h range
 
   
