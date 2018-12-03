@@ -1,11 +1,11 @@
 # Base script to analyse standard dat
-# OMH Aug 29, 2018
+# OMH AUg 29, 2018
 
 import os
 import time
 import sys
 import math
-
+import mx.DateTime
 import numpy as np
 import pylab as pl
 from scipy.optimize import curve_fit
@@ -14,25 +14,27 @@ from scipy.optimize import curve_fit
 # module. Do ./setup.py build & ./setup.py install if not loadable [email Gu Junhua Sept 27 2017]
 #import pyef
 
+
 DISPLAY = 0
 print 'DISPLAY = ',DISPLAY 
 pl.ion()
 
-def loopEvents(RUNID,boardID):
-   #datadir = "/home/pastsoft/data"
-   datadir = "/home/martineau/GRAND/GRANDproto35/data/ulastai/"
-   filename = datadir+"R"+RUNID+"_b"+boardID+".data.txt"
+def loopEvents(filename,SLW_filename):
    if os.path.isfile(filename) is False:
      print 'File ',filename,'does not exist. Aborting.'
      return
-
+  
+   if os.path.isfile(SLW_filename) is False:
+     print 'File ',filename,'does not exist. Aborting.'
+     return
+  
    datafile = filename.split('/')
    TYPE = datafile[-1][0]
    if TYPE == 'C':
      nch = 4   # Plot calibrator channel
    else:
      nch = 3
-   
+
    # Read data
    print 'Scanning data file',filename
    with open(filename,"r") as f:
@@ -63,13 +65,14 @@ def loopEvents(RUNID,boardID):
    # Loop on events
    j = 0;  # Index of array filling (because date & data are "append")
    for i in range(1,nevts+1):  
-   #for i in range(1,1000):  
    	   if float(i)/100 == int(i/100):
 	   	print 'Event',i,'/',nevts
    	   evt = evts[i]
    	   evtsplit = evt.split('\n')
 	   if np.size(evtsplit)>8:   # Event is of normal size
-	           date.append(evtsplit[1])
+#	           date.append(evtsplit[1])
+                   d = mx.DateTime.DateTimeFrom(evtsplit[1])
+                   date.append(d)
 		   IP = evtsplit[2][3:]
 		   board[j] = int(IP[-2:]);
 		   		
@@ -198,18 +201,28 @@ def loopEvents(RUNID,boardID):
    print 'Run start:', date[0]
    print 'Boards in run:',list(boards)
    j = 0
-   #for id in boards:  # Loop on all boards in run
-   for id in [int(boardID)]:  # Loop on all boards in run
-     print id
-     print board
+   for id in boards:  # Loop on all boards in run
      sel = np.where(board == id)
-     print sel
      date_end = date[sel[0][-1]]
      print 'Run stop:',date_end,'for board',id,' (',np.size(sel),'measurements)'
      if np.size(timein) > 0:
        # To be implemented: read MaxCoarse info from slow control data and define correction factor accordingly cor = 125e6/MaxCoarse
        # See anaTiming.py line 133 and following for guidance
-       cor = 1.0
+
+#------------------------------------------
+        # Grab MaxCoarse info from SLC run.
+        [d,maxCoarseRaw] = getMaxCoarse(SLW_filename)
+        
+        d = np.array(d)
+        maxCoarse = np.zeros((np.size(sel)))
+        
+        for k in range(np.size(sel)): 
+     	  idift = np.argmin(np.abs(date[k]-d))
+          maxCoarse[k] = maxCoarseRaw[idift]
+        cor=125e6/(maxCoarse+1)
+        
+#       cor = 1.0
+#------------------------------------------------
      else:
        cor=1.0
      print 'Correction factor for 125MHz clock for board',id,':',cor
@@ -348,7 +361,36 @@ def get_1stone(val):
     	return 7
     return 8	
 	
-	
+
+def getMaxCoarse(filename):
+# retrieve maxCoarse info from bslow control data
+    datafile = filename
+    print 'Scanning',datafile
+    
+    #ef=pyef.read_event_file(datafile)
+    #pyef.print_event_file(ef)
+    
+    try:
+      with open(datafile,"r") as f:
+    	   evts = f.read().split('-----------------')
+    except: 
+      print "getMaxCoarse: error!!! Could not fond file",filename,". Return 0 instead."
+      return 0,0
+      
+    nevts=len(evts)-1  # All messages in SLC.txt file
+    date = []
+    maxCoarse = []
+    for i in range(nevts):
+       evt = evts[i]
+       if len(evt)>60:  #59 is ACK size
+            evtsplit = evt.split('\n')
+            d = mx.DateTime.DateTimeFrom(evtsplit[1])  # Better parser than standard datetime module
+
+            date.append(d)
+            maxCoarse.append(evtsplit[20].split(':')[1])
+    return date,maxCoarse
+
+ 
     
 def twos_comp(val, bits):
     """compute the 2's compliment of int value val"""
@@ -360,6 +402,6 @@ def twos_comp(val, bits):
 
 if __name__ == '__main__':
      if len(sys.argv)!=3:
-       print "Usage: >loopEvents RUNID BOARDID"
+       print "Usage: >loopEvents path/filename path/SLW_filename"
      else:  
        loopEvents(sys.argv[1],sys.argv[2])
